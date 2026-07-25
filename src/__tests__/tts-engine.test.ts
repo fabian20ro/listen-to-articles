@@ -394,6 +394,40 @@ describe('computeTimeline', () => {
 // ── TTSEngine ───────────────────────────────────────────────────────
 
 describe('TTSEngine', () => {
+  describe('init', () => {
+    it('emits onError when no voices load (timeout)', async () => {
+      const onStateChange = vi.fn();
+      const onError = vi.fn();
+      const engine = new TTSEngine({ proxyBase: '', callbacks: { onStateChange, onError } });
+
+      // Override getVoices to return empty so the timeout path fires
+      mockSynth.getVoices.mockReturnValue([] as unknown as SpeechSynthesisVoice[]);
+      // Prevent voiceschanged event from firing (would resolve early)
+      mockSynth.addEventListener.mockImplementation((name: string, _cb: () => void) => {
+        if (name === 'voiceschanged') return;
+      });
+
+      await engine.init();
+      // Wait for 3s timeout to fire + microtask flush
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0][0]).toContain('No TTS voices available');
+    });
+
+    it('does not emit error when voices load successfully', async () => {
+      const onError = vi.fn();
+      const engine = new TTSEngine({ proxyBase: '', callbacks: { onError } });
+
+      // getVoices returns a voice so the immediate-resolve path fires
+      mockSynth.getVoices.mockReturnValue([makeVoice('Test Voice', 'en-US')]);
+
+      await engine.init();
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
   function createEngine(callbacks: TTSCallbacks = {}) {
     mockSynth.getVoices.mockReturnValue([makeVoice('Google US English', 'en-US')]);
     const engine = new TTSEngine({
