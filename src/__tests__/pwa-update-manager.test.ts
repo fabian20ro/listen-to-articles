@@ -211,6 +211,23 @@ describe('PwaUpdateManager', () => {
     expect(sw.update).toHaveBeenCalledTimes(2); // init + explicit check
   });
 
+  it('checkForUpdates returns no-change when SW register rejects on init', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    sw.register.mockRejectedValue(new Error('sw-fail'));
+
+    const onStatus = vi.fn();
+    const manager = new PwaUpdateManager({ onStatus });
+    await manager.init('sw.js');
+
+    expect(sw.register).toHaveBeenCalledWith('sw.js', { updateViaCache: 'none' });
+    expect(manager.hasPendingReload()).toBe(false);
+    expect(onStatus).toHaveBeenCalledWith('Offline support unavailable.');
+
+    const result = await manager.checkForUpdates({ silent: false });
+
+    expect(result).toBe('no-change');
+  });
+
   it('checkForUpdates returns no-change silently when registration is missing', async () => {
     mockCacheStorage();
 

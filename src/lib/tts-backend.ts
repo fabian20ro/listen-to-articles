@@ -16,6 +16,11 @@ export interface TTSBackendCallbacks {
   /**
    * Called on playback error.
    * @param shouldFallback - true if the engine should try the fallback backend
+   *
+   * Contract: exactly one of `onEnd` or `onError` must be invoked per call to
+   * `TTSBackend.speak()`, never both and never neither (unless canceled before
+   * speaking begins). Neither callback may throw — backends must guard against
+   * engine-side failures inside callbacks.
    */
   onError: (shouldFallback: boolean) => void;
 }

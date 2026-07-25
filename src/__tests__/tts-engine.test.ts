@@ -461,6 +461,36 @@ describe('TTSEngine', () => {
     expect(utter.rate).toBe(3.0);
   });
 
+  it('clamps negative and zero rates to minimum 0.5', () => {
+    const engine = createEngine();
+    engine.setRate(-1.0);
+    engine.loadArticle(['Hello.'], 'en');
+    engine.play();
+
+    const utter = mockSynth.speak.mock.calls[0][0] as MockUtterance;
+    expect(utter.rate).toBe(0.5);
+  });
+
+  it('clamps zero rate to minimum 0.5', () => {
+    const engine = createEngine();
+    engine.setRate(0);
+    engine.loadArticle(['Hello.'], 'en');
+    engine.play();
+
+    const utter = mockSynth.speak.mock.calls[0][0] as MockUtterance;
+    expect(utter.rate).toBe(0.5);
+  });
+
+  it('does not clamp rate within valid range', () => {
+    const engine = createEngine();
+    engine.setRate(2.0);
+    engine.loadArticle(['Hello.'], 'en');
+    engine.play();
+
+    const utter = mockSynth.speak.mock.calls[0][0] as MockUtterance;
+    expect(utter.rate).toBe(2.0);
+  });
+
   it('pauses and calls speechSynthesis.pause()', () => {
     const engine = createEngine();
     engine.loadArticle(['Hello world.'], 'en');

@@ -95,6 +95,16 @@ describe('langToCode', () => {
       expect(langToCode(fallback as Language)).toBe('en');
     });
   }
+
+  // Edge case: langToCode must handle numeric strings gracefully without throwing.
+  it('returns "en" for numeric string input', () => {
+    expect(langToCode('123' as Language)).toBe('en');
+  });
+
+  // Edge case: langToCode must handle whitespace-only strings without throwing.
+  it('returns "en" for whitespace-only string input', () => {
+    expect(langToCode('   ' as Language)).toBe('en');
+  });
 });
 
 // ── isLanguage ──────────────────────────────────────────────────────
