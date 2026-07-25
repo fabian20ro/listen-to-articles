@@ -61,6 +61,17 @@ describe('utils.ts', () => {
       expect(output).not.toContain('*');
       expect(output).not.toContain('`');
     });
+
+    it('strips fenced code blocks entirely', () => {
+      const input = 'Before\n```js\nconst x = 1;\n```\nAfter';
+      expect(stripMarkdownSyntax(input)).toBe('Before After');
+    });
+
+    it('handles nested inline code with no content after stripping', () => {
+      const result = stripMarkdownSyntax('` `');
+      // Inline backticks stripped to their content (empty), then stripNonTextContent trims.
+      expect(result).toBe('');
+    });
   });
 
   describe('filterReadableParagraphs', () => {
