@@ -16,6 +16,7 @@ import {
   MIN_PARAGRAPH_LENGTH,
 } from '../lib/extractor.js';
 import { sanitizeRenderedHtml, parseArticleFromHtml } from '../lib/extractors/extract-html.js';
+import { extractTitleFromMarkdown } from '../lib/extractors/utils.js';
 
 // ── Mock modules ──────────────────────────────────────────────────
 
@@ -127,6 +128,42 @@ const SAMPLE_HTML = `
 describe('MIN_PARAGRAPH_LENGTH', () => {
   it('is exported as a public constant with value 20', () => {
     expect(MIN_PARAGRAPH_LENGTH).toBe(20);
+  });
+});
+
+
+// ── extractTitleFromMarkdown ───────────────────────────────────────
+
+describe('extractTitleFromMarkdown', () => {
+  it('extracts title from H1 heading with content', () => {
+    const markdown = '# My Great Title\n\nSome body text here.';
+    expect(extractTitleFromMarkdown(markdown)).toBe('My Great Title');
+  });
+
+  it('returns empty string for bare # without content', () => {
+    const markdown = '#\n\nSome text';
+    expect(extractTitleFromMarkdown(markdown)).toBe('');
+  });
+
+  it('strips H1 prefix and trims whitespace from title', () => {
+    const markdown = '#   My Title With Spaces   \n\nBody content here.';
+    expect(extractTitleFromMarkdown(markdown)).toBe('My Title With Spaces');
+  });
+
+  it('returns first line when no H1 is present', () => {
+    const markdown = 'First Line Without Heading\n\nSecond paragraph text.';
+    expect(extractTitleFromMarkdown(markdown)).toBe('First Line Without Heading');
+  });
+
+  it('truncates title to 150 characters', () => {
+    const longTitle = 'A'.repeat(200);
+    const markdown = `${longTitle}\n\nBody content here.`;
+    expect(extractTitleFromMarkdown(markdown)).toHaveLength(150);
+  });
+
+  it('strips markdown syntax from first line without H1', () => {
+    const markdown = '**Bold Title**\n\nBody with **bold text**.';
+    expect(extractTitleFromMarkdown(markdown)).toBe('Bold Title');
   });
 });
 
