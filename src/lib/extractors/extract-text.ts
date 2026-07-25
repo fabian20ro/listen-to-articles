@@ -17,7 +17,8 @@ import {
  */
 export function createArticleFromText(text: string): Article {
   // Strip markdown image references before paragraph processing — TTS would otherwise read them aloud.
-  const cleaned = text.replace(IMAGE_MD_RE, '');
+  const LINK_MD_RE = /\[([^\]]*)\]\([^()]*\)/g;
+  const cleaned = text.replace(IMAGE_MD_RE, '').replace(LINK_MD_RE, '$1');
   const lines = cleaned.split('\n');
   const firstLine = lines[0].trim();
   const hasTitle = firstLine.length > 0 && firstLine.length <= 150;
