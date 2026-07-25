@@ -10,6 +10,7 @@ import {
   extractYoutubeVideoId,
   createArticleFromText,
   createArticleFromTextFile,
+  createArticleFromMarkdownFile,
   createArticleFromPdf,
   splitTextBySentences,
   extractParagraphsFromTextItems,
