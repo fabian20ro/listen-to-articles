@@ -96,6 +96,12 @@ function openDB(): Promise<IDBDatabase> {
 /** Save article content for a queue item (local files only). */
 export async function saveArticleContent(content: StoredArticleContent): Promise<void> {
   try {
+    // Reject malformed records at write time — partial writes must not corrupt the store.
+    if (!validateStoredArticle(content)) {
+      log.warn('Refused to save malformed article content (validation failed)');
+      return;
+    }
+
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(content);

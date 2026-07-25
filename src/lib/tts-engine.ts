@@ -228,6 +228,9 @@ export class TTSEngine {
 
   async init(): Promise<void> {
     this.allVoices = await waitForVoices();
+    if (this.allVoices.length === 0) {
+      this.cb.onError?.('No TTS voices available on this device. Playback will be limited.');
+    }
   }
 
   getAvailableVoices(): SpeechSynthesisVoice[] {
