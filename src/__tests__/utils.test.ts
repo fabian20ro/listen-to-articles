@@ -138,6 +138,39 @@ describe('utils.ts', () => {
       const result = splitSentences('Dr. Jones said hello.');
       expect(result.length).toBeGreaterThan(0);
     });
+
+    it('treats Dr. as part of the preceding word (abbreviation in list)', () => {
+      const result = splitSentences('Dr. Smith walked into the room.');
+      // "Dr." should not split — result should be one sentence
+      expect(result).toEqual(['Dr. Smith walked into the room.']);
+    });
+
+    it('handles consecutive abbreviations without splitting', () => {
+      const result = splitSentences('The e.g. and i.e. examples are confusing.');
+      // Both "e.g." and "i.e." should not trigger splits
+      expect(result).toEqual(['The e.g. and i.e. examples are confusing.']);
+    });
+
+    it('splits after abbreviation at sentence boundary', () => {
+      const result = splitSentences('Dr. Smith went home. He was tired.');
+      // "Dr." is an abbreviation (no split), period ends first sentence, second starts fresh
+      expect(result).toEqual(['Dr. Smith went home.', 'He was tired.']);
+    });
+
+    it('treats Mr., Mrs., Ms. as abbreviations in list', () => {
+      const result1 = splitSentences('Mr. Jones said hello.');
+      expect(result1).toEqual(['Mr. Jones said hello.']);
+      const result2 = splitSentences('Mrs. Smith walked away.');
+      expect(result2).toEqual(['Mrs. Smith walked away.']);
+      const result3 = splitSentences('Ms. Davis nodded.');
+      expect(result3).toEqual(['Ms. Davis nodded.']);
+    });
+
+    it('handles Prof. as abbreviation', () => {
+      const result = splitSentences('Prof. Adams lectured for hours.');
+      // "Prof." should not trigger a sentence boundary
+      expect(result).toEqual(['Prof. Adams lectured for hours.']);
+    });
   });
 
   describe('splitTextBySentences', () => {
