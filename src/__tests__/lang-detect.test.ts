@@ -240,6 +240,28 @@ describe('detectLangFromUrl', () => {
   it('detects Macedonian from .mk TLD', () => {
     expect(detectLangFromUrl('https://kurir.mk/tekst')).toBe('mk');
   });
+
+  // ── Additional Balkan TLDs ───────────────────────────────────────
+
+  it('detects Bulgarian from .bg TLD', () => {
+    expect(detectLangFromUrl('https://dnevnik.bg/statija')).toBe('bg');
+  });
+
+  it('detects Croatian from .hr TLD', () => {
+    expect(detectLangFromUrl('https://index.hr/vijesti')).toBe('hr');
+  });
+
+  it('detects Slovak from .sk TLD', () => {
+    expect(detectLangFromUrl('https://aktuality.sk/clanok')).toBe('sk');
+  });
+
+  it('detects Slovenian from .sl TLD', () => {
+    expect(detectLangFromUrl('https://dnevnik.si/ clanek')).toBe('sl');
+  });
+
+  it('detects Serbian from .rs TLD (Serbia proper)', () => {
+    expect(detectLangFromUrl('https://b92.rs/beseda')).toBe('sr');
+  });
 });
 
 // ── needsTranslation ───────────────────────────────────────────────

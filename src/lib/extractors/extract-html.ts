@@ -30,7 +30,12 @@ export function parseArticleFromHtml(
   }
   const doc = new DOMParserConstructor().parseFromString(html, 'text/html');
 
-  const normalizedSourceUrl = new URL(sourceUrl);
+  let normalizedSourceUrl: URL;
+  try {
+    normalizedSourceUrl = new URL(sourceUrl);
+  } catch (err) {
+    throw new Error(`Invalid source URL "${sourceUrl}": ${(err as Error).message}`);
+  }
   if (normalizedSourceUrl.protocol !== 'http:' && normalizedSourceUrl.protocol !== 'https:') {
     throw new Error('Only http(s) source URLs are supported.');
   }

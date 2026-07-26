@@ -36,6 +36,8 @@ export function renderArticleBody(
   container: HTMLElement,
   tts: TTSEngine,
 ): string[] {
+  if (!article || !container || !tts) return [];
+
   container.innerHTML = '';
 
   if (article.markdown) {
