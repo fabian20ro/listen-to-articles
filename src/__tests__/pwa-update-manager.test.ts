@@ -255,4 +255,50 @@ describe('PwaUpdateManager', () => {
     expect(onStatus).toHaveBeenNthCalledWith(1, 'Checking...');
     expect(onStatus).toHaveBeenNthCalledWith(2, 'Up to date.');
   });
+
+  it('forceRefresh returns failed when SW update rejects', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onStatus = vi.fn();
+    const reloadSpy = vi.fn();
+
+    sw.update.mockRejectedValue(new Error('network'));
+    const manager = new PwaUpdateManager({ onStatus, reload: reloadSpy });
+    await manager.init('sw.js');
+
+    const result = await manager.forceRefresh();
+
+    expect(result).toBe('failed');
+    expect(onStatus).toHaveBeenCalledWith('Update check failed. Try again.');
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('deferred reload invokes onUpdateReady callback', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onUpdateReady = vi.fn();
+
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => true,
+      onUpdateReady,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+
+    expect(onUpdateReady).toHaveBeenCalledTimes(1);
+  });
+
+  it('visibilitychange does nothing when not visible', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+
+    const manager = new PwaUpdateManager();
+    await manager.init('sw.js');
+
+    setVisibility('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(sw.update).toHaveBeenCalledTimes(1); // only init call
+  });
 });

@@ -114,12 +114,48 @@ export function extractTitleFromMarkdown(markdown: string): string {
  * Split text into individual sentences.
  */
 export function splitSentences(text: string): string[] {
-  // Simple regex for sentence splitting.
-  // TODO: Handle abbreviations like 'Mr.', 'Dr.', 'e.g.' to avoid incorrect splits.
-  const regex = /[^.!?]+(?<!\b(?:Mr|Mrs|Ms|Dr|Prof|e\.g|i\.e|vs|etc))[.!?]+(?:\s+|$)|[^.!?]+$/g;
-  const matches = text.match(regex);
-  if (!matches) return [];
-  return matches.map(s => s.trim()).filter(s => s.length > 0);
+  // Split text into sentences while preserving known abbreviations (Mr., Dr., etc.)
+  // so they don't trigger incorrect boundaries or get dropped from output.
+  const ABBREV_RE = /(?:^|\s)(?:Mr|Mrs|Ms|Dr|Prof|e\.g|i\.e|vs|etc)\.?$/i;
+
+  const segments: string[] = [];
+  let current = '';
+  let prevAbbr = false;
+
+  for (const token of text.split(/\s+/)) {
+    if (!token) continue;
+
+    // If previous segment ended with an abbreviation and this is a new word, close that segment.
+    if (prevAbbr && /[^.!?]$/.test(current.trim())) {
+      segments.push(current.trim());
+      current = '';
+      prevAbbr = false;
+    }
+
+    const endsWithSentencePunct = /[.!?]$/.test(token);
+    const isAbbrevToken = ABBREV_RE.test(' ' + token);
+
+    if (current) {
+      // Continue accumulating the current segment.
+      current += ' ' + token;
+    } else {
+      current = token;
+    }
+
+    // Track whether this segment ends with an abbreviation for next iteration.
+    prevAbbr = isAbbrevToken && !endsWithSentencePunct;
+
+    // Close segment when we hit sentence-ending punctuation (not part of an abbreviation).
+    if (endsWithSentencePunct && !isAbbrevToken) {
+      segments.push(current.trim());
+      current = '';
+      prevAbbr = false;
+    }
+  }
+
+  if (current.trim()) segments.push(current.trim());
+
+  return segments.filter(s => s.length > 0);
 }
 
 /**
