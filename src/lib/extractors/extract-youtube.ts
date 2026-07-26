@@ -48,7 +48,14 @@ type TranscriptTrack = {
   languageCode?: string;
 };
 
-/** Extract video ID from various YouTube URL formats. */
+/**
+ * Extract video ID from various YouTube URL formats.
+ *
+ * Supports: standard watch, short (youtu.be), embed, v, shorts, live URLs.
+ * Handles query parameters (`v`, `list`), timestamp fragments (`#t=`),
+ * and trailing slashes on youtu.be links. Returns null for invalid hosts
+ * or malformed IDs (not 11 chars matching `[\\w-]{11}`).
+ */
 export function extractYoutubeVideoId(url: string): string | null {
   try {
     const parsed = new URL(url);
@@ -187,6 +194,20 @@ async function fetchPlayerJson(videoId: string, apiKey: string, fetcher: typeof 
   return await response.json();
 }
 
+/** Picks the first transcript track from player JSON.
+ *
+ * Read order (matching production precedence):
+ *   1. `playerJson.captions.playerCaptionsTracklistRenderer.captionTracks[0]`
+ *   2. `playerJson.playerCaptionsTracklistRenderer.captionTracks[0]`
+ *
+ * Throws:
+ *   - "Transcript metadata is not available" when the captions key is absent or
+ *     its renderer does not exist (but playabilityStatus.status === 'OK' means a
+ *     different error).
+ *   - "No transcript found" when `captionTracks` exists but is empty.
+ *
+ * Track field precedence for fetch URL: `baseUrl`, then `url`, then failure.
+ */
 export function pickTranscriptTrack(playerJson: any): TranscriptTrack {
   const tracklist =
     playerJson?.captions?.playerCaptionsTracklistRenderer
