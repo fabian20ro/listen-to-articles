@@ -5,6 +5,7 @@ const log = createLogger('PWA');
 export interface PwaUpdateManagerOptions {
   onUpdateReady?: () => void;
   onStatus?: (status: string) => void;
+  onUpdateApplied?: () => void;
   isPlaybackActive?: () => boolean;
   reload?: () => void;
 }
@@ -92,6 +93,7 @@ export class PwaUpdateManager {
 
     this.pendingReload = false;
     this.options.onStatus?.('Applying update...');
+    this.options.onUpdateApplied?.();
     this.reloadPage();
     return 'reloaded';
   }
@@ -125,6 +127,7 @@ export class PwaUpdateManager {
 
     this.pendingReload = false;
     this.options.onStatus?.('Applying update...');
+    this.options.onUpdateApplied?.();
     this.reloadPage();
     return 'reloaded';
   }
