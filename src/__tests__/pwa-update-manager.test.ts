@@ -289,6 +289,42 @@ describe('PwaUpdateManager', () => {
     expect(onUpdateReady).toHaveBeenCalledTimes(1);
   });
 
+  it('invokes onUpdateApplied when deferred update applies after playback idle', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onUpdateApplied = vi.fn();
+
+    let isPlaying = true;
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => isPlaying,
+      onUpdateApplied,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+
+    isPlaying = false;
+    manager.applyDeferredReloadIfIdle();
+
+    expect(onUpdateApplied).toHaveBeenCalledTimes(1);
+  });
+
+  it('invokes onUpdateApplied on immediate update ready', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onUpdateApplied = vi.fn();
+
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => false,
+      onUpdateApplied,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+
+    expect(onUpdateApplied).toHaveBeenCalledTimes(1);
+  });
+
   it('visibilitychange does nothing when not visible', async () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
