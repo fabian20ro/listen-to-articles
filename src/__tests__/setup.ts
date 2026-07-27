@@ -32,6 +32,7 @@ if (typeof SpeechSynthesis === 'undefined') {
     cancel() {},
     pause() {},
     resume() {},
+    getVoices(): SpeechSynthesisVoice[] { return []; },
     get speaking() { return false; },
     get paused() { return false; },
     get pending() { return false; },
