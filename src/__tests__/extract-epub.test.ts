@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
-import { sanitizeHref, parseEpubFromArrayBuffer } from '../lib/extractors/extract-epub.js';
+import { sanitizeHref, parseEpubFromArrayBuffer, createArticleFromEpub } from '../lib/extractors/extract-epub.js';
 
 describe('sanitizeHref', () => {
   it('returns normal paths as-is', () => {
@@ -375,6 +375,78 @@ describe('parseEpubFromArrayBuffer', () => {
     // Headings are formatted with ## or ### prefix per extractTextFromXhtml.
     expect(article.textContent).toContain('## Chapter Title');
     expect(article.textContent).toContain('### Subsection Header');
+    expect(article.textContent).toContain('long enough to pass');
+  });
+});
+
+describe('createArticleFromEpub', () => {
+  it('throws when file.size exceeds MAX_PDF_SIZE (10 MB)', async () => {
+    const oversizedFile = {
+      name: 'huge.epub',
+      size: 11_000_000, // > 10 MB
+      async arrayBuffer() { return new ArrayBuffer(0); },
+    };
+
+    await expect(
+      createArticleFromEpub(oversizedFile as any, class {
+        parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+      }),
+    ).rejects.toThrow(/EPUB is too large/);
+  });
+
+  it('creates an Article from a minimal valid EPUB via the File-based path', async () => {
+    const zip = new JSZip();
+
+    // Build a complete valid EPUB in memory
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata dc:language="en">
+    <dc:title>File Path Book</dc:title>
+  </metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>A paragraph long enough to pass the extraction filter through the file-based path.</p></body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const fileLike = {
+      name: 'file-path-book.epub',
+      get size(): number { return buf.byteLength; },
+      async arrayBuffer() { return buf; },
+    };
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    const article = await createArticleFromEpub(fileLike as any, domParserCtor);
+
+    expect(article.title).toBe('File Path Book');
     expect(article.textContent).toContain('long enough to pass');
   });
 });
