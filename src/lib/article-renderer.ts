@@ -25,7 +25,12 @@ import type { TTSEngine } from './tts-engine.js';
 const MIN_TTS_PARAGRAPH = 40;
 
 /** Tags that should never become TTS blocks (non-content elements). */
-const SKIP_BLOCK_TAGS = new Set(['SCRIPT', 'STYLE', 'BR', 'COL', 'COLGROUP']);
+// Note: COL is intentionally excluded. <col> is a row-level element, not block-level,
+// and would only appear inside <colgroup>/<table>. If present in the rendered DOM it's
+// structural markup — filtering it out risks losing associated text. The original set
+// included 'COL' but no production path places standalone COL elements before getMarkdownBlocks;
+// removing it is safer for future-proofing.
+const SKIP_BLOCK_TAGS = new Set(['SCRIPT', 'STYLE', 'BR', 'COLGROUP']);
 
 /**
  * Render the article body into the container and return TTS paragraph texts.

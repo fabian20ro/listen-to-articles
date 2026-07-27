@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
-import { sanitizeHref, parseEpubFromArrayBuffer, createArticleFromEpub } from '../lib/extractors/extract-epub.js';
+import { sanitizeHref, parseEpubFromArrayBuffer, createArticleFromEpub, extractOpfPath } from '../lib/extractors/extract-epub.js';
 
 describe('sanitizeHref', () => {
   it('returns normal paths as-is', () => {
@@ -276,6 +276,57 @@ describe('parseEpubFromArrayBuffer', () => {
     expect(article.textContent).toContain('long enough');
   });
 
+  it('silently skips spine entries whose idref is absent from manifest (robustness contract)', async () => {
+    const zip = new JSZip();
+
+    // container.xml
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    // OPF: spine references idref "ghost-ch" which is NOT in manifest, and idref "ch1" which IS.
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Broken Spine</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ghost-ch"/>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>A paragraph long enough to pass the extraction filter through a broken-spine EPUB.</p></body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    // Should not throw — production silently skips the missing idref and still produces text from valid chapters.
+    const article = await parseEpubFromArrayBuffer(buf, 'https://example.com/broken.spine.epub', domParserCtor);
+
+    expect(article.title).toBe('Broken Spine');
+    expect(article.textContent).toContain('long enough to pass');
+  });
+
   it('throws when decompressed content exceeds the zip-bomb guard', async () => {
     const zip = new JSZip();
 
@@ -448,5 +499,51 @@ describe('createArticleFromEpub', () => {
 
     expect(article.title).toBe('File Path Book');
     expect(article.textContent).toContain('long enough to pass');
+  });
+});
+
+describe('extractOpfPath', () => {
+  it('returns the full-path value from a standard container.xml', () => {
+    const xml = `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`;
+    expect(extractOpfPath(xml)).toBe('content.opf');
+  });
+
+  it('returns the path even with media-type attribute', () => {
+    const xml = '<rootfile full-path="oebps/content.opf" media-type="application/oebps-package+xml"/>';
+    expect(extractOpfPath(xml)).toBe('oebps/content.opf');
+  });
+
+  it('returns null when no full-path attribute is present', () => {
+    const xml = '<rootfile media-type="application/oebps-package+xml"/>';
+    expect(extractOpfPath(xml)).toBeNull();
+  });
+
+  it('rejects paths containing unsafe characters (spaces, parens)', () => {
+    const xml = '<rootfile full-path="my content.opf"/>';
+    expect(extractOpfPath(xml)).toBeNull();
+    const xml2 = '<rootfile full-path="bad(path).opf"/>';
+    expect(extractOpfPath(xml2)).toBeNull();
+  });
+
+  it('rejects paths longer than 512 characters', () => {
+    const longName = 'a'.repeat(513);
+    const xml = `<rootfile full-path="${longName}"/>`;
+    expect(extractOpfPath(xml)).toBeNull();
+  });
+
+  it('accepts a path exactly at the 512-character limit', () => {
+    const exactName = 'a'.repeat(512);
+    const xml = `<rootfile full-path="${exactName}"/>`;
+    expect(extractOpfPath(xml)).toBe(exactName);
+  });
+
+  it('returns the first full-path match only', () => {
+    const xml = `full-path="first.opf" full-path="second.opf"`;
+    expect(extractOpfPath(xml)).toBe('first.opf');
   });
 });

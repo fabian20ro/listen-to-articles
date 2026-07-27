@@ -61,4 +61,11 @@ export class EventEmitter<T extends Record<string, unknown>> {
       this.listeners.clear();
     }
   }
+
+  /** Unsubscribe from an event using the handler reference instead of the unsubscribe function. */
+  off<K extends keyof T>(event: K, handler: Handler<T[K]>): void {
+    const handlers = this.listeners.get(event);
+    if (!handlers) return;
+    handlers.delete(handler as Handler<unknown>);
+  }
 }
