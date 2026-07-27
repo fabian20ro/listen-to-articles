@@ -43,7 +43,7 @@ describe('parseEpubFromArrayBuffer', () => {
       parseEpubFromArrayBuffer(new ArrayBuffer(0), 'https://example.com/book.epub', class {
         parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/zip/i);
   });
 
   it('throws on invalid EPUB (junk buffer)', async () => {
@@ -51,7 +51,7 @@ describe('parseEpubFromArrayBuffer', () => {
       parseEpubFromArrayBuffer(new ArrayBuffer(20), 'https://example.com/book.epub', class {
         parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/zip/i);
   });
 
   it('derives title from URL pathname (does not throw "Invalid URL")', async () => {
