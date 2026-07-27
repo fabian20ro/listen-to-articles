@@ -259,6 +259,33 @@ describe('detectLangFromUrl', () => {
     expect(detectLangFromUrl('https://dnevnik.si/ clanek')).toBe('sl');
   });
 
+  // ── Romanian TLD (core product signal) ───────────────────────
+
+  it('detects Romanian from .ro TLD', () => {
+    expect(detectLangFromUrl('https://digi24.ro/stiri')).toBe('ro');
+  });
+
+  it('detects Romanian from subdomain .ro URL', () => {
+    expect(detectLangFromUrl('https://articol.example.ro/text')).toBe('ro');
+  });
+
+  // ── Multi-level TLD edge cases ───────────────────────────────
+
+  it('returns English for .co.uk (TLD is the last segment)', () => {
+    expect(detectLangFromUrl('https://bbc.co.uk/news/tech')).toBe('en');
+  });
+
+  // ── Hostname parsing robustness ──────────────────────────────
+
+  it('handles URL with query parameters', () => {
+    expect(detectLangFromUrl('https://example.fr/article?q=test&page=1')).toBe('fr');
+  });
+
+  it('detects language from IP-based hostname (no TLD mapping)', () => {
+    // IPs have no meaningful TLD; should return ''
+    expect(detectLangFromUrl('http://93.184.216.34/article')).toBe('');
+  });
+
   it('detects Serbian from .rs TLD (Serbia proper)', () => {
     expect(detectLangFromUrl('https://b92.rs/beseda')).toBe('sr');
   });
