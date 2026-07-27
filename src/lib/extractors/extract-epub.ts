@@ -138,7 +138,7 @@ async function readZipFile(zip: JSZipInstance, path: string): Promise<string | n
 }
 
 /** Extract the OPF file path from container.xml with bounds and character validation. */
-function extractOpfPath(containerXml: string): string | null {
+export function extractOpfPath(containerXml: string): string | null {
   const match = containerXml.match(/full-path\s*=\s*"([^"]{1,512})"/);
   if (!match) return null;
   const path = match[1];

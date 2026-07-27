@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
-import { sanitizeHref, parseEpubFromArrayBuffer, createArticleFromEpub } from '../lib/extractors/extract-epub.js';
+import { sanitizeHref, parseEpubFromArrayBuffer, createArticleFromEpub, extractOpfPath } from '../lib/extractors/extract-epub.js';
 
 describe('sanitizeHref', () => {
   it('returns normal paths as-is', () => {
@@ -499,5 +499,51 @@ describe('createArticleFromEpub', () => {
 
     expect(article.title).toBe('File Path Book');
     expect(article.textContent).toContain('long enough to pass');
+  });
+});
+
+describe('extractOpfPath', () => {
+  it('returns the full-path value from a standard container.xml', () => {
+    const xml = `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`;
+    expect(extractOpfPath(xml)).toBe('content.opf');
+  });
+
+  it('returns the path even with media-type attribute', () => {
+    const xml = '<rootfile full-path="oebps/content.opf" media-type="application/oebps-package+xml"/>';
+    expect(extractOpfPath(xml)).toBe('oebps/content.opf');
+  });
+
+  it('returns null when no full-path attribute is present', () => {
+    const xml = '<rootfile media-type="application/oebps-package+xml"/>';
+    expect(extractOpfPath(xml)).toBeNull();
+  });
+
+  it('rejects paths containing unsafe characters (spaces, parens)', () => {
+    const xml = '<rootfile full-path="my content.opf"/>';
+    expect(extractOpfPath(xml)).toBeNull();
+    const xml2 = '<rootfile full-path="bad(path).opf"/>';
+    expect(extractOpfPath(xml2)).toBeNull();
+  });
+
+  it('rejects paths longer than 512 characters', () => {
+    const longName = 'a'.repeat(513);
+    const xml = `<rootfile full-path="${longName}"/>`;
+    expect(extractOpfPath(xml)).toBeNull();
+  });
+
+  it('accepts a path exactly at the 512-character limit', () => {
+    const exactName = 'a'.repeat(512);
+    const xml = `<rootfile full-path="${exactName}"/>`;
+    expect(extractOpfPath(xml)).toBe(exactName);
+  });
+
+  it('returns the first full-path match only', () => {
+    const xml = `full-path="first.opf" full-path="second.opf"`;
+    expect(extractOpfPath(xml)).toBe('first.opf');
   });
 });
