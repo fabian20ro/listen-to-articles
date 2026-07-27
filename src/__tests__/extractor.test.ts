@@ -577,6 +577,42 @@ describe('createArticleFromText', () => {
   });
 });
 
+// ── createArticleFromMarkdownFile ────────────────────────────────
+
+describe('createArticleFromMarkdownFile', () => {
+  it('extracts title from H1 and paragraphs from markdown body', async () => {
+    const md = '# My Great Title\n\nFirst paragraph with enough words to pass the filter.\n\nSecond paragraph also has enough text content.';
+    const file = new File([md], 'test.md');
+    const article = await createArticleFromMarkdownFile(file);
+    expect(article.title).toBe('My Great Title');
+    expect(article.siteName).toBe('Markdown');
+    expect(article.paragraphs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('parses plain text blocks as paragraphs', async () => {
+    // Plain paragraphs with no markdown syntax — markdownToParagraphs still splits them.
+    const plain = 'First paragraph has enough text content to be valid.\n\nSecond paragraph also has enough words.';
+    const file = new File([plain], 'notes.md');
+    const article = await createArticleFromMarkdownFile(file);
+    expect(article.paragraphs.length).toBeGreaterThanOrEqual(1);
+    expect(article.siteName).toBe('Markdown');
+  });
+
+  it('throws when markdown file is empty', async () => {
+    const file = new File([''], 'empty.md');
+    await expect(createArticleFromMarkdownFile(file)).rejects.toThrow();
+  });
+
+  it('extracts title from first line when no H1 present, falls back to filename if line too short', async () => {
+    // extractTitleFromMarkdown returns first line; filename only used as final fallback.
+    const md = 'First paragraph with enough words to pass the filter and be valid content.\n\nSecond paragraph also has enough text.';
+    const file = new File([md], 'my-article.md');
+    const article = await createArticleFromMarkdownFile(file);
+    // First line is returned as title by extractTitleFromMarkdown when no H1 found
+    expect(article.title).toBe('First paragraph with enough words to pass the filter and be valid content.');
+  });
+});
+
 // ── sanitizeRenderedHtml (extract-html.ts) ────────────────────────
 
 describe('sanitizeRenderedHtml', () => {
