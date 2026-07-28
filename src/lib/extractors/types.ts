@@ -8,6 +8,11 @@ export class UpstreamResponseError extends Error {
   constructor(public status: number, message: string) {
     super(message);
     this.name = 'UpstreamResponseError';
+    if (!(status >= 100 && status < 600)) {
+      throw new RangeError(
+        `Invalid HTTP status in UpstreamResponseError: ${status}. Expected [100, 599].`
+      );
+    }
   }
 }
 
