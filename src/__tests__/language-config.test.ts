@@ -153,3 +153,22 @@ describe('DEFAULT_TRANSLATION_TARGET', () => {
     expect(isLanguage(DEFAULT_TRANSLATION_TARGET)).toBe(true);
   });
 });
+
+// ── LANG_TTS_CODES maintenance contract ───────────────────────────────
+
+describe('LANG_TTS_CODES maintenance contract', () => {
+  // Forward: every supported language must have a TTS code.
+  it('has an entry for every supported language', () => {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      expect(LANG_TTS_CODES[lang]).toBeDefined();
+    }
+  });
+
+  // Backward: no orphan keys — every LANG_TTS_CODES key must be a supported language.
+  it('every TTS code entry maps to a supported language', () => {
+    const ttsKeys = Object.keys(LANG_TTS_CODES) as Language[];
+    for (const lang of ttsKeys) {
+      expect(SUPPORTED_LANGUAGES).toContain(lang);
+    }
+  });
+});
