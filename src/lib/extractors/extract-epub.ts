@@ -149,7 +149,13 @@ export function extractOpfPath(containerXml: string): string | null {
 
 /** Sanitize a ZIP-internal href from OPF manifest to prevent path traversal. */
 export function sanitizeHref(href: string): string {
-  const decoded = decodeURIComponent(href).replace(/\\/g, '/');
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(href);
+  } catch {
+    return '';
+  }
+  decoded = decoded.replace(/\\/g, '/');
   const parts = decoded.split('/').filter(Boolean);
   const safe: string[] = [];
   for (const part of parts) {
