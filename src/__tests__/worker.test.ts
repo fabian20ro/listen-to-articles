@@ -267,4 +267,78 @@ describe('worker youtube parse', () => {
     const body = await response.json();
     expect(body.error).toMatch(/PDF too large/);
   });
+
+  it('proxy route accepts EPUBs that match the ZIP magic prefix', async () => {
+    const epubBytes = new Uint8Array([
+      0x50, 0x4b, 0x03, 0x04, // 'PK\x03\x04' — ZIP/EPUB magic prefix
+      ...Array(96).fill(0),
+    ]);
+
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      return new Response(epubBytes, {
+        status: 200,
+        headers: { 'content-type': 'application/epub+zip' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const response = await worker.fetch(
+      new Request('https://worker.example/?url=https://example.com/book.epub'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('proxy route rejects EPUBs with invalid magic bytes', async () => {
+    const fakeEpubBytes = new Uint8Array([
+      0x47, 0x49, 0x46, 0x38 // 'GIF8' — not ZIP/EPUB magic
+    ]);
+
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      return new Response(fakeEpubBytes, {
+        status: 200,
+        headers: { 'content-type': 'application/epub+zip' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const response = await worker.fetch(
+      new Request('https://worker.example/?url=https://example.com/fake.epub'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toMatch(/Response claims to be EPUB/);
+  });
+
+  it('proxy route rejects EPUBs exceeding the binary size limit', async () => {
+    const header = new Uint8Array([0x50, 0x4b, 0x03, 0x04]); // PK\x03\x04 — ZIP/EPUB magic
+    const padding = new Uint8Array(10 * 1024 * 1024 + 1); // just over limit
+    const bigEpubBytes = new Uint8Array(header.length + padding.length);
+    bigEpubBytes.set(header, 0);
+    bigEpubBytes.set(padding, header.length);
+
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      return new Response(bigEpubBytes, {
+        status: 200,
+        headers: { 'content-type': 'application/epub+zip' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const response = await worker.fetch(
+      new Request('https://worker.example/?url=https://example.com/big.epub'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toMatch(/EPUB too large/);
+  });
 });
