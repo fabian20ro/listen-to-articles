@@ -530,6 +530,13 @@ describe('extractOpfPath', () => {
     expect(extractOpfPath(xml2)).toBeNull();
   });
 
+  it('rejects paths containing backslash characters', () => {
+    // Backslashes in OPF full-path values indicate malformed or crafted EPUBs;
+    // the validation regex should reject them.
+    const xml = '<rootfile full-path="chapters\\intro.xhtml"/>';
+    expect(extractOpfPath(xml)).toBeNull();
+  });
+
   it('rejects paths longer than 512 characters', () => {
     const longName = 'a'.repeat(513);
     const xml = `<rootfile full-path="${longName}"/>`;
