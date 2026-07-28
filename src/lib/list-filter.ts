@@ -32,19 +32,28 @@ export interface ListFilterOptions {
    * Defaults to 150ms. Set to 0 or null to disable debouncing.
    */
   inputDebounceMs?: number | null;
+
+  /**
+   * Text shown below the search input when no items match. Defaults to "No results found".
+   * Set to null or empty string to disable the message entirely.
+   */
+  noResultsMessage?: string | null;
 }
 
 export class ListFilter {
   private readonly input: HTMLInputElement;
   private readonly list: HTMLElement;
   private readonly getText: (item: HTMLElement) => string;
+  private readonly noResultsMsg: string | null;
   private readonly debounceMs: number | null;
   private timerId: ReturnType<typeof setTimeout> | null = null;
+  private messageEl: HTMLSpanElement | null = null;
 
   constructor(opts: ListFilterOptions) {
     this.list = opts.list;
     this.getText = opts.getText ?? ((el) => el.textContent ?? '');
     this.debounceMs = opts.inputDebounceMs ?? 150;
+    this.noResultsMsg = (opts.noResultsMessage !== undefined && opts.noResultsMessage !== null && opts.noResultsMessage !== '') ? opts.noResultsMessage : null;
 
     this.input = document.createElement('input');
     this.input.type = 'search';
@@ -82,6 +91,31 @@ export class ListFilter {
     }
   }
 
+  /** Show the no-results message below the search input, replacing any prior message. */
+  private showMessage(text: string): void {
+    const el = document.createElement('span');
+    el.textContent = text;
+    el.className = 'list-filter-no-results';
+    el.setAttribute('aria-live', 'polite');
+    el.setAttribute('role', 'status');
+
+    if (this.messageEl !== null) {
+      this.input.parentElement?.replaceChild(el, this.messageEl);
+      this.messageEl = el;
+      return;
+    }
+    this.input.after(el);
+    this.messageEl = el;
+  }
+
+  /** Hide and remove the no-results message if present. */
+  private removeMessage(): void {
+    if (this.messageEl !== null) {
+      this.messageEl.remove();
+      this.messageEl = null;
+    }
+  }
+
   /** Apply filter with optional debouncing. */
   private debounceApply(): void {
     if (this.debounceMs === null || this.debounceMs <= 0) {
@@ -99,15 +133,25 @@ export class ListFilter {
   applyFilter(): void {
     const query = this.input.value.toLowerCase().trim();
     const items = this.list.children;
+    let matchCount = 0;
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i] as HTMLElement;
       if (!query) {
         item.style.removeProperty('display');
+        matchCount += 1;
       } else {
         const text = this.getText(item).toLowerCase();
-        item.style.display = text.includes(query) ? '' : 'none';
+        const matches = text.includes(query);
+        item.style.display = matches ? '' : 'none';
+        if (matches) matchCount += 1;
       }
+    }
+
+    if (this.noResultsMsg !== null && matchCount === 0) {
+      this.showMessage(this.noResultsMsg);
+    } else {
+      this.removeMessage();
     }
   }
 
