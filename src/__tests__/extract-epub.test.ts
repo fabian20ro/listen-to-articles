@@ -35,6 +35,16 @@ describe('sanitizeHref', () => {
     // %2F is '/' — decoded, the path collapses to a single segment
     expect(sanitizeHref('chapters%2Fintro.xhtml')).toBe('chapters/intro.xhtml');
   });
+
+  it('throws on malformed percent-encoding (e.g. "%2")', () => {
+    // decodeURIComponent('%2') raises URIError — sanitizeHref does not catch this,
+    // so the error propagates to the caller as a contract boundary.
+    expect(() => sanitizeHref('%2')).toThrow();
+  });
+
+  it('throws on invalid percent-encoded characters (e.g. "%GG")', () => {
+    expect(() => sanitizeHref('chapters%GGintro.xhtml')).toThrow();
+  });
 });
 
 describe('parseEpubFromArrayBuffer', () => {
