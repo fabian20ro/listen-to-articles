@@ -16,7 +16,11 @@ const RO_WORDS = [
   'și', 'este', 'care', 'pentru', 'într', 'sunt',
   'acest', 'poate', 'prin', 'doar', 'mai', 'sau',
   'fost', 'avea', 'acesta', 'despre', 'când', 'toate',
-  'numai', 'după', 'foarte', 'acum', 'unde', 'că', 'de', 'un', 'o', 'la', 'cu'
+  'numai', 'după', 'foarte', 'acum', 'unde', 'că', 'de', 'un', 'o', 'la', 'cu',
+  // Additional common Romanian stop words for better coverage
+  'aceasta', 'așa', 'cum', 'dar', 'dintr', 'din',
+  'era', 'fără', 'între', 'lângă', 'mulți', 'multe',
+  'ne', 'niște', 'pe', 'se', 'trecut', 'totuși', 'trebuie'
 ];
 
 /**
