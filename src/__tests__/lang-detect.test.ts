@@ -123,6 +123,44 @@ describe('detectLanguage', () => {
     const text = 'Hello,ăâîș ești aici și nu este frumos.';
     expect(detectLanguage(text)).toBe('ro');
   });
+
+  // ── Extended word-list coverage (new stop words) ────────────────
+
+  it('detects Romanian via new stop word "aceasta" + diacritic', () => {
+    const text = 'Această întrebare este foarte importantă pentru aceasta.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
+  it('detects Romanian via new stop words "așa" and "cum"', () => {
+    const text = 'Așa cum știm, acest lucru este posibil.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
+  it('detects Romanian via new stop word "fără" + diacritics', () => {
+    const text = 'Fără aceste semne, articolul ar fi în engleză.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
+  it('detects Romanian via new stop words "niște" and "pe"', () => {
+    const text = 'Pe niște site-uri românești se găsesc articole interesante.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
+  it('detects Romanian via new stop word "totuși" + diacritic', () => {
+    const text = 'Totuși, această idee este foarte interesantă.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
+  it('does not falsely detect English when only new stop words are present without other signals', () => {
+    // A single common word should still need another signal to trigger ro detection.
+    const text = 'Aceasta este o întrebare despre tehnologie.';
+    expect(detectLanguage(text)).toBe('ro'); // 2 words: aceasta + despre (existing)
+  });
+
+  it('detects Romanian via new stop word "trebuie" + diacritic', () => {
+    const text = 'Trebuie să studiem această problemă pentru a înțelege.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
 });
 
 // ── detectLangFromHtml ─────────────────────────────────────────────

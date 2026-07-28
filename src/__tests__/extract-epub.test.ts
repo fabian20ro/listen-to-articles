@@ -35,6 +35,16 @@ describe('sanitizeHref', () => {
     // %2F is '/' — decoded, the path collapses to a single segment
     expect(sanitizeHref('chapters%2Fintro.xhtml')).toBe('chapters/intro.xhtml');
   });
+
+  it('throws on malformed percent-encoding (e.g. "%2")', () => {
+    // decodeURIComponent('%2') raises URIError — sanitizeHref does not catch this,
+    // so the error propagates to the caller as a contract boundary.
+    expect(() => sanitizeHref('%2')).toThrow();
+  });
+
+  it('throws on invalid percent-encoded characters (e.g. "%GG")', () => {
+    expect(() => sanitizeHref('chapters%GGintro.xhtml')).toThrow();
+  });
 });
 
 describe('parseEpubFromArrayBuffer', () => {
@@ -373,6 +383,47 @@ describe('parseEpubFromArrayBuffer', () => {
     await expect(
       parseEpubFromArrayBuffer(buf, 'https://example.com/big.epub', domParserCtor),
     ).rejects.toThrow(/too large after decompression/);
+  });
+
+  it('throws when OPF yields no extractable chapters (empty spine)', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    // OPF with valid manifest and spine, but references an idref that does NOT exist in the manifest.
+    // Production should detect zero extractable chapters and throw a specific error.
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Empty Book</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="nonexistent-chapter"/>
+  </spine>
+</package>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    // The spine references an idref absent from the manifest — parseOpf builds zero chapterPaths.
+    await expect(
+      parseEpubFromArrayBuffer(buf, 'https://example.com/empty.epub', domParserCtor),
+    ).rejects.toThrow(/Could not find any chapters in this EPUB/);
   });
 
   it('preserves heading markdown formatting in extracted text', async () => {

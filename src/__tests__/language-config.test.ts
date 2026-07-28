@@ -130,6 +130,9 @@ describe('isLanguage', () => {
     expect(isLanguage(123)).toBe(false);
     expect(isLanguage(true)).toBe(false);
     expect(isLanguage({})).toBe(false);
+    expect(isLanguage([])).toBe(false);
+    expect(isLanguage(Symbol('lang'))).toBe(false);
+    expect(isLanguage(new Date())).toBe(false);
   });
 
   it('returns false for empty string', () => {
