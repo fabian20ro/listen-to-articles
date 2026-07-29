@@ -152,8 +152,10 @@ describe('isLanguage', () => {
 // ── DEFAULT_TRANSLATION_TARGET ──────────────────────────────────────
 
 describe('DEFAULT_TRANSLATION_TARGET', () => {
-  it('defaults to English', () => {
-    expect(DEFAULT_TRANSLATION_TARGET).toBe('en');
+  // Structural contract: translation target mirrors default source language.
+  // If SUPPORTED_LANGUAGES[0] changes, both must update together — no drift.
+  it('matches DEFAULT_LANGUAGE (first supported language)', () => {
+    expect(DEFAULT_TRANSLATION_TARGET).toBe(DEFAULT_LANGUAGE);
   });
 
   it('is a supported language', () => {

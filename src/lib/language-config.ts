@@ -26,4 +26,5 @@ export function isLanguage(v: unknown): v is Language {
 /** First supported language — used as default for new sessions. */
 export const DEFAULT_LANGUAGE: Language = SUPPORTED_LANGUAGES[0];
 
-export const DEFAULT_TRANSLATION_TARGET: Language = 'en';
+/** Default target language for translations — mirrors DEFAULT_LANGUAGE so it stays in sync. */
+export const DEFAULT_TRANSLATION_TARGET: Language = DEFAULT_LANGUAGE;
