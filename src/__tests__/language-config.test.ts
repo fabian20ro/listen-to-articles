@@ -170,8 +170,7 @@ describe('LANG_TTS_CODES maintenance contract', () => {
   // Backward: no orphan keys — every LANG_TTS_CODES key must be a supported language.
   it('every TTS code entry maps to a supported language', () => {
     const ttsKeys = Object.keys(LANG_TTS_CODES) as Language[];
-    for (const lang of ttsKeys) {
-      expect(SUPPORTED_LANGUAGES).toContain(lang);
-    }
+    const orphans = ttsKeys.filter((lang) => !SUPPORTED_LANGUAGES.includes(lang));
+    expect(orphans).toEqual([]);
   });
 });
