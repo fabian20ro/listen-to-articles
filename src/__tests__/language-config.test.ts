@@ -17,8 +17,13 @@ describe('SUPPORTED_LANGUAGES', () => {
     expect(SUPPORTED_LANGUAGES).toContain('ro');
   });
 
-  it('is a readonly tuple', () => {
-    expect(SUPPORTED_LANGUAGES.length).toBe(2);
+  it('every supported language has TTS code and langToCode entry', () => {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      expect(LANG_TTS_CODES[lang], `TTS code missing for ${lang}`).toBeDefined();
+      const code = langToCode(lang);
+      expect(typeof code, `langToCode(${lang})`).toBe('string');
+      expect(code.length > 0, `langToCode(${lang})`).toBeTruthy();
+    }
   });
 });
 
@@ -74,9 +79,8 @@ describe('langToCode', () => {
   it('returns a non-empty code for every supported language', () => {
     for (const lang of SUPPORTED_LANGUAGES) {
       const code = langToCode(lang);
-      expect(code).toBeDefined();
-      expect(typeof code).toBe('string');
-      expect(code.length).toBeGreaterThan(0);
+      expect(typeof code, `langToCode(${lang})`).toBe('string');
+      expect(code.length > 0, `langToCode(${lang})`).toBeTruthy();
     }
   });
 
@@ -148,8 +152,10 @@ describe('isLanguage', () => {
 // ── DEFAULT_TRANSLATION_TARGET ──────────────────────────────────────
 
 describe('DEFAULT_TRANSLATION_TARGET', () => {
-  it('defaults to English', () => {
-    expect(DEFAULT_TRANSLATION_TARGET).toBe('en');
+  // Structural contract: translation target mirrors default source language.
+  // If SUPPORTED_LANGUAGES[0] changes, both must update together — no drift.
+  it('matches DEFAULT_LANGUAGE (first supported language)', () => {
+    expect(DEFAULT_TRANSLATION_TARGET).toBe(DEFAULT_LANGUAGE);
   });
 
   it('is a supported language', () => {
