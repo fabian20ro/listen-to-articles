@@ -17,8 +17,13 @@ describe('SUPPORTED_LANGUAGES', () => {
     expect(SUPPORTED_LANGUAGES).toContain('ro');
   });
 
-  it('is a readonly tuple', () => {
-    expect(SUPPORTED_LANGUAGES.length).toBe(2);
+  it('every supported language has TTS code and langToCode entry', () => {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      expect(LANG_TTS_CODES[lang], `TTS code missing for ${lang}`).toBeDefined();
+      const code = langToCode(lang);
+      expect(typeof code, `langToCode(${lang})`).toBe('string');
+      expect(code.length > 0, `langToCode(${lang})`).toBeTruthy();
+    }
   });
 });
 
