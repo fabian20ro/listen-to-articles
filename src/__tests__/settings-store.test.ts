@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createDefaultSettings,
   loadSettings,
@@ -261,5 +261,25 @@ describe('settings-store', () => {
     expect(saved.rate).toBe(3);
     expect(saved.lang).toBe('auto');
     expect(localStorage.getItem('articlevoice-settings')).toBe(JSON.stringify({ rate: 3, lang: 'auto', voiceName: '', voiceGender: 'auto', wakeLock: true, theme: 'dark', deviceVoiceOnly: false }));
+  });
+
+  it.each([null, undefined, 0, 'yes'] as const)('falls back to wakeLock=true when stored value is %s (not boolean)', (storedValue) => {
+    localStorage.setItem(
+      'articlevoice-settings',
+      JSON.stringify({ ...defaults, wakeLock: storedValue }),
+    );
+
+    expect(loadSettings(defaults).wakeLock).toBe(true);
+  });
+
+  it('returns fallback defaults when saveSettings throws during load', () => {
+    const restore = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage full');
+    });
+
+    const saved = loadSettings(defaults);
+    expect(saved).toEqual(createDefaultSettings(defaults));
+
+    restore.mockRestore();
   });
 });
