@@ -74,9 +74,8 @@ describe('langToCode', () => {
   it('returns a non-empty code for every supported language', () => {
     for (const lang of SUPPORTED_LANGUAGES) {
       const code = langToCode(lang);
-      expect(code).toBeDefined();
-      expect(typeof code).toBe('string');
-      expect(code.length).toBeGreaterThan(0);
+      expect(typeof code, `langToCode(${lang})`).toBe('string');
+      expect(code.length > 0, `langToCode(${lang})`).toBeTruthy();
     }
   });
 
