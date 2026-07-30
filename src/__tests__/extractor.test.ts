@@ -527,6 +527,14 @@ describe('extractArticle', () => {
 
     await expect(extractArticle(ARTICLE_URL, '')).rejects.toThrow(TypeError);
   });
+
+  it('throws when YouTube URL is provided without a proxy (direct mode not supported)', async () => {
+    const YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+    await expect(extractArticle(YOUTUBE_URL, '')).rejects.toThrow(
+      'Direct YouTube extraction is only supported through the worker parse API.',
+    );
+  });
 });
 
 describe('extractYoutubeVideoId', () => {
