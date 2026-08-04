@@ -1,5 +1,5 @@
 /**
- * Article Local Reader — thin app bootstrap/orchestrator.
+ * Listen to Articles — thin app bootstrap/orchestrator.
  *
  * All business logic lives in dedicated modules. This file wires
  * instances together, binds UI events, and manages settings sync.
@@ -535,5 +535,5 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 main().catch((err) => {
-  console.error('Article Local Reader init failed:', err);
+  console.error('Listen to Articles init failed:', err);
 });

@@ -1,6 +1,6 @@
 {
-  "name": "Article Local Reader",
-  "short_name": "Article Reader",
+  "name": "Listen to Articles",
+  "short_name": "Listen Articles",
   "description": "Read any article aloud",
   "start_url": ".",
   "scope": ".",

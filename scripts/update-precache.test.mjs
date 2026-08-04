@@ -14,7 +14,7 @@ import {
 
 describe('update-precache', () => {
   it('collects emitted dist assets and renders them into PRECACHE', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-precache-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-precache-'));
 
     try {
       mkdirSync(join(tempRoot, 'assets'), { recursive: true });
@@ -97,7 +97,7 @@ describe('update-precache', () => {
   });
 
   it('writes stable assets and removes stale hashed entries from dist/assets/', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-precache-sync-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-precache-sync-'));
 
     try {
       mkdirSync(join(tempRoot, 'icons'), { recursive: true });
@@ -150,7 +150,7 @@ describe('update-precache', () => {
   });
 
   it('throws when dist/ does not exist', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-sync-no-dist-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-no-dist-'));
 
     try {
       expect(() => syncDistServiceWorker()).toThrow(/dist\/ does not exist/);
@@ -160,7 +160,7 @@ describe('update-precache', () => {
   });
 
   it('returns outputSwPath and sorted precache entries with "./" first', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-sync-dist-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-dist-'));
 
     try {
       mkdirSync(join(tempRoot, 'icons'), { recursive: true });
@@ -204,7 +204,7 @@ describe('update-precache', () => {
   });
 
   it('deletes stale hashed icon and manifest files from dist/assets/ with multiple icons', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-stale-cleanup-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-stale-cleanup-'));
 
     try {
       mkdirSync(join(tempRoot, 'assets'), { recursive: true });
@@ -229,7 +229,7 @@ describe('update-precache', () => {
   });
 
   it('collects no files from an empty dist directory', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-collect-empty-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-collect-empty-'));
 
     try {
       // Create a completely empty directory — no sw.js, no assets/, nothing.
@@ -243,7 +243,7 @@ describe('update-precache', () => {
   });
 
   it('collects dist files recursively through nested subdirectories', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-collect-nested-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-collect-nested-'));
 
     try {
       mkdirSync(join(tempRoot, 'assets', 'deep', 'nested'), { recursive: true });
@@ -266,7 +266,7 @@ describe('update-precache', () => {
   });
 
   it('skips sw.js from the collected entries even when present at root', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-collect-skip-sw-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-collect-skip-sw-'));
 
     try {
       mkdirSync(tempRoot);
@@ -286,7 +286,7 @@ describe('update-precache', () => {
   });
 
   it('throws when source icon file is missing in syncStableRuntimeAssets', () => {
-    const tempRoot = mkdtempSync(join(tmpdir(), 'pixel-article-reader-sync-missing-icon-'));
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-missing-icon-'));
 
     try {
       // Verify that copyFileSync throws ENOENT when the source doesn't exist,

@@ -130,8 +130,8 @@ describe('MediaSessionController', () => {
 
   it('should use default metadata when no args provided', () => {
     controller.updateMetadata();
-    expect(navigator.mediaSession.metadata?.title).toBe('Article Local Reader');
-    expect(navigator.mediaSession.metadata?.artist).toBe('Article Local Reader');
+    expect(navigator.mediaSession.metadata?.title).toBe('Listen to Articles');
+    expect(navigator.mediaSession.metadata?.artist).toBe('Listen to Articles');
   });
 
   it('should clamp position in updatePositionState', () => {

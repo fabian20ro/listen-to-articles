@@ -1,5 +1,5 @@
 {
-  "name": "article-local-reader",
+  "name": "listen-to-articles",
   "version": "1.0.0",
   "description": "PWA that reads any article aloud using on-device TTS",
   "private": true,

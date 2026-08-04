@@ -1,5 +1,5 @@
 /**
- * Article Local Reader — Cloudflare Worker
+ * Listen to Articles — Cloudflare Worker
  *
  * Implements CORS proxy and REST API for article extraction.
  */

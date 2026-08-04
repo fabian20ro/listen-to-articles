@@ -1,5 +1,5 @@
 /*
- * Minimal Turndown-compatible adapter used by Article Local Reader.
+ * Minimal Turndown-compatible adapter used by Listen to Articles.
  * Derived from Turndown (https://github.com/mixmark-io/turndown).
  * Exposes `window.TurndownService` with a `turndown(html)` method.
  *

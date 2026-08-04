@@ -1207,3 +1207,13 @@ Each entry should follow this structure:
 **What happened:** Added a Vitest baseline for jsdom's unimplemented media `play()`/`pause()` methods and kept call assertions in the media-session tests with local spies.
 
 **Verification:** Container Compound local-green — lint/build and 585/585 tests passed without jsdom media-method errors.
+
+---
+
+### [2026-08-04] Migrate repository and product brand to Listen to Articles
+
+**Context:** Git transport for `pixel-article-reader` was disabled, so the repository was recovered into `listen-to-articles` from a verified full-ref bundle.
+**What happened:** Updated the Pages and workflow links, package/PWA/product names, media-session fallback metadata, and cache version. Retained the existing `pixel-article-reader` Cloudflare Worker name and URL for installed-client compatibility. Added the `WORKER_DEPLOY_ENABLED` repository-variable gate so CI cannot attempt a deploy until the new repository receives its Cloudflare secrets.
+**Outcome:** Success. Typecheck, 829 tests, production build, and Worker dry-run all pass from the replacement repository.
+**Insight:** Repository renames must preserve stable external service endpoints while moving repository- and Pages-scoped identities together.
+**Promoted to Lessons Learned:** No

@@ -1,6 +1,6 @@
-# Article Local Reader
+# Listen to Articles
 
-**Live app: https://fabian20ro.github.io/pixel-article-reader/**
+**Live app: https://fabian20ro.github.io/listen-to-articles/**
 
 PWA that turns any article into audio using on-device TTS with a queue-based playlist system. Extracts readable content from URLs, renders it as formatted markdown, and reads it aloud with sentence-level controls. Also supports local files (PDF, TXT, Markdown, EPUB) and pasted text.
 
@@ -42,18 +42,18 @@ GitHub Actions handles this automatically. On every push to `main`:
 
 To enable: go to **Settings > Pages > Source** and select **GitHub Actions**.
 
-The site will be available at `https://fabian20ro.github.io/pixel-article-reader/`.
+The site will be available at `https://fabian20ro.github.io/listen-to-articles/`.
 
 ### 3. Deploy the Cloudflare Worker
 
-The `deploy-worker.yml` workflow deploys the Worker after the `CI` workflow succeeds on `main`. It uses the repository-locked `wrangler` version to ensure consistency.
+The `deploy-worker.yml` workflow deploys the Worker after the `CI` workflow succeeds on `main` when the `WORKER_DEPLOY_ENABLED` repository variable is set to `true`. It uses the repository-locked `wrangler` version to ensure consistency.
 
 Add these repository secrets first:
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 
-The worker URL will be: `https://pixel-article-reader.fabian20ro.workers.dev`
+The worker URL remains `https://pixel-article-reader.fabian20ro.workers.dev`. The legacy Worker name is intentionally retained so existing installations keep working after the repository rename.
 
 #### Manual first deploy (alternative)
 
@@ -65,17 +65,17 @@ npm run worker:deploy
 
 ### 4. Install the PWA
 
-Open the live app on your phone (Chrome or Brave). Tap the install banner or use the browser menu to **Add to Home Screen**. Once installed, you can share articles directly from your browser to Article Local Reader.
+Open the live app on your phone (Chrome or Brave). Tap the install banner or use the browser menu to **Add to Home Screen**. Once installed, you can share articles directly from your browser to Listen to Articles.
 
 ## Usage
 
 ### Share Target (primary flow)
 
-After installing the PWA, use your browser's **Share** menu on any article. Select **Article Local Reader** — the app opens, extracts the article, and is ready to play.
+After installing the PWA, use your browser's **Share** menu on any article. Select **Listen to Articles** — the app opens, extracts the article, and is ready to play.
 
 ### Paste URL or Article Text
 
-Open Article Local Reader directly and paste an article URL **or full article text** into the input field. Press **GO** or hit Enter. If no URL is detected at the end of the text, it will be treated as pasted article content and displayed directly.
+Open Listen to Articles directly and paste an article URL **or full article text** into the input field. Press **GO** or hit Enter. If no URL is detected at the end of the text, it will be treated as pasted article content and displayed directly.
 
 ### Local File Upload
 
@@ -135,7 +135,7 @@ If the installed app is stuck on an older UI, try **Settings → Check for Updat
 
 ### Desktop Chrome / Edge
 
-1. Open `https://fabian20ro.github.io/pixel-article-reader/`
+1. Open `https://fabian20ro.github.io/listen-to-articles/`
 2. Open DevTools → **Application** → **Service Workers** → **Unregister**
 3. DevTools → **Application** → **Storage** → **Clear site data**
 4. Hard reload (`Cmd/Ctrl+Shift+R`)

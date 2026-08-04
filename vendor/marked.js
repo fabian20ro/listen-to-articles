@@ -1,5 +1,5 @@
 /*
- * Minimal marked-compatible adapter used by Article Local Reader.
+ * Minimal marked-compatible adapter used by Listen to Articles.
  * Derived from marked (https://github.com/markedjs/marked).
  * Exposes `window.marked.parse(markdown)`.
  *
