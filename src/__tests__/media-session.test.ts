@@ -221,4 +221,15 @@ describe('MediaSessionController', () => {
     await Promise.resolve();
     expect(playSpy).toHaveBeenCalled();
   });
+
+  it('should dispose cleanly when never activated — guard paths exercise deactivate + listener removal', () => {
+    // Controller was constructed but activate() was never called.
+    // dispose() must still remove the visibilitychange listener without throwing,
+    // and must safely skip null audio / null silentUrl in deactivate + revokeObjectURL.
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+
+    expect(() => controller.dispose()).not.toThrow();
+    expect(controller.active).toBe(false);
+    expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+  });
 });
