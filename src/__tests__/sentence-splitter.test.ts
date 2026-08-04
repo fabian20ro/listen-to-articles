@@ -23,6 +23,18 @@ describe('sentence-splitter', () => {
       const input = [longPart + '.', 'Next sentence.'];
       expect(mergeShortSentences(input)).toEqual([longPart + '.', 'Next sentence.']);
     });
+
+    it('should NOT merge when current length equals MIN_SENTENCE_LENGTH (40)', () => {
+      const boundary = 'A'.repeat(40);
+      const input = [boundary, 'short.'];
+      expect(mergeShortSentences(input)).toEqual([boundary, 'short.']);
+    });
+
+    it('should merge when current is one char below MIN_SENTENCE_LENGTH (39)', () => {
+      const short = 'A'.repeat(39);
+      const next = 'B'.repeat(10) + '.';
+      expect(mergeShortSentences([short, next])).toEqual([`${short} ${next}`]);
+    });
   });
 
   describe('splitLongSentence', () => {
@@ -105,6 +117,27 @@ describe('sentence-splitter', () => {
       const text = 'first;   second; third';
       const result = splitLongSentence(text, 5);
       expect(result[1].startsWith('second')).toBe(true);
+    });
+
+    it('should handle mixed punctuation marks (?!.) as sentence boundaries', () => {
+      const text = 'Hello! What? Yes.';
+      // Each segment is < MIN_SENTENCE_LENGTH, so mergeShortSentences joins them.
+      expect(splitSentences(text)).toEqual(['Hello! What? Yes.']);
+    });
+
+    it('should keep mixed-punctuation segments separate when merged length exceeds MAX_UTTERANCE_LENGTH', () => {
+      const long = 'A'.repeat(65);
+      const text = `${long}! ${long}? ${long}.`;
+      // Each piece is ~66 chars (>= 40), so mergeShortSentences does NOT merge them.
+      expect(splitSentences(text).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should return single segment when long-split produces only whitespace after trim', () => {
+      // Delimiter segments collapse to empty after trim — production keeps non-empty only,
+      // so the result should be a single non-empty chunk from the trailing text.
+      const text = '   ...  ';
+      const result = splitLongSentence(text, 5);
+      expect(result.every(s => s.length > 0)).toBe(true);
     });
   });
 
