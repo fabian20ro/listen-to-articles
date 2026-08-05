@@ -490,4 +490,41 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.siteName).toBe('JSON Author');
     expect(result.paragraphs[0]).toContain('Metadata from JSON test content.');
   });
+
+  it('should produce an Article through createArticleFromPdf when given a valid file-like object (regression: createArticleFromPdf happy path untested)', async () => {
+    setupMockPdf(1, { Title: 'File Article', Author: 'File Author' }, () => [
+      { str: 'First paragraph of the article.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
+      { str: 'Second paragraph here with more content.', transform: [1, 0, 0, 1, 0, 650], height: 12 },
+    ]);
+
+    const buffer = new ArrayBuffer(1024);
+    const fileObj = {
+      name: 'file-article.pdf',
+      size: 512,
+      async arrayBuffer() { return buffer; },
+    };
+
+    const result = await createArticleFromPdf(fileObj as any);
+
+    expect(result.title).toBe('File Article');
+    expect(result.siteName).toBe('File Author');
+    expect(result.paragraphs).toHaveLength(2);
+    expect(result.paragraphs[0]).toContain('First paragraph');
+    expect(result.paragraphs[1]).toContain('Second paragraph');
+  });
+
+  it('should accept a file at exactly MAX_PDF_SIZE boundary without throwing on size guard (regression: boundary not verified)', async () => {
+    setupMockPdf(1, {}, () => [
+      { str: 'Boundary test content paragraph.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
+    ]);
+
+    const buffer = new ArrayBuffer(64);
+    const boundaryFile = {
+      name: 'boundary.pdf',
+      size: MAX_PDF_SIZE,
+      async arrayBuffer() { return buffer; },
+    };
+
+    await expect(createArticleFromPdf(boundaryFile as any)).resolves.toBeDefined();
+  });
 });
