@@ -98,4 +98,36 @@ describe('extractYoutubeVideoId bug reproduction', () => {
     // Hyphens are valid inside [\w-], but an all-hyphen string fails length+pattern check
     expect(extractYoutubeVideoId('https://www.youtube.com/watch?v=---------')).toBeNull();
   });
+
+  it('returns null when ID contains dots (dot not in [\\w-])', () => {
+    // The regex is /^[\w-]{11}$/; dot is excluded from \w and hyphen, so "abc.defghijk" fails.
+    expect(extractYoutubeVideoId('https://www.youtube.com/watch?v=abc.defghijk')).toBeNull();
+  });
+
+  it('returns null when youtu.be path has extra trailing segment after ID', () => {
+    // pathname.slice(1) → "abc12345678/extra"; replace(/\x2f$/, "") strips only the final slash, leaving "abc12345678/extra" which fails length+regex.
+    expect(extractYoutubeVideoId('https://youtu.be/abc12345678/extra')).toBeNull();
+  });
+
+  it('returns null when watch URL has empty v param but valid path ID', () => {
+    // parsed.searchParams.get('v') returns "" (falsy), falls back to pathname.split('/')[2] → "abc12345678" which passes. This tests the fallback is exercised correctly with an empty v param.
+    const id = extractYoutubeVideoId('https://www.youtube.com/watch?v=&path=abc12345678');
+    // The path split gives ['watch', 'v=', 'path=abc12345678'] → [2] is "path=abc12345678" which fails regex.
+    expect(id).toBeNull();
+  });
+
+  it('returns null for youtube.com hostname with no valid path structure', () => {
+    // pathname "/" doesn't start with any of /watch, /embed/, etc., so falls through to return null.
+    expect(extractYoutubeVideoId('https://www.youtube.com/')).toBeNull();
+  });
+
+  it('extracts ID from music.youtube.com watch URL', () => {
+    // hostname is "music.youtube.com"; pathname "/watch?v=abc12345678" matches /watch prefix.
+    expect(extractYoutubeVideoId('https://music.youtube.com/watch?v=abc12345678')).toBe('abc12345678');
+  });
+
+  it('extracts ID with underscores (underscore is in \\w)', () => {
+    // \w includes [A-Za-z0-9_]; underscored IDs are valid per the regex.
+    expect(extractYoutubeVideoId('https://www.youtube.com/watch?v=abc_defghij')).toBe('abc_defghij');
+  });
 });
