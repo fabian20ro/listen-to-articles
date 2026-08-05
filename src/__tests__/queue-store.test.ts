@@ -216,6 +216,41 @@ describe('queue-store', () => {
   });
 
   describe('saveQueue', () => {
+    it('returns true on successful persistence and writes correct JSON', () => {
+      const item = makeItem({ id: 'persist-test' });
+      const result = saveQueue([item]);
+
+      expect(result).toBe(true);
+      const stored = localStorage.getItem('article-reader-queue');
+      expect(stored).toBeTruthy();
+      const parsed = JSON.parse(stored!);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].id).toBe('persist-test');
+    });
+
+    it('invokes onFail synchronously when localStorage.setItem throws', () => {
+      const mock = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')!;
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: createStorageMock(),
+        configurable: true,
+      });
+
+      (globalThis.localStorage as any).setItem = () => {
+        throw new DOMException('QuotaExceededError', 'Failed to save');
+      };
+
+      const item = makeItem({ id: 'fail-safe' });
+      let failCalled = false;
+      let failArg: unknown;
+      const result = saveQueue([item], (err) => { failCalled = true; failArg = err; });
+
+      expect(result).toBe(false);
+      expect(failCalled).toBe(true);
+      expect(failArg).toBeInstanceOf(DOMException);
+
+      Object.defineProperty(globalThis, 'localStorage', { value: mock.value, configurable: true });
+    });
+
     it('returns false when localStorage.setItem throws (quota exceeded)', () => {
       const mock = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')!;
       Object.defineProperty(globalThis, 'localStorage', {
