@@ -461,4 +461,33 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.paragraphs.join(' ')).toContain('First sentence');
     expect(result.paragraphs.join(' ')).toContain('Second sentence');
   });
+
+  it('should use metadata.toJSON() as fallback for title/author when info is absent (regression: metadata.toJSON path untested)', async () => {
+    setupMockPdf(1, {}, (pageNum: number) => [
+      { str: 'Metadata from JSON test content.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
+    ]);
+
+    // Patch the mock to add metadata.toJSON() on the returned pdf object.
+    const originalGetDocument = mock.getDocument;
+    mock.getDocument.mockImplementation((_params: any) => {
+      const pdfObj = {
+        numPages: 1,
+        info: {},
+        getPage: (_pageNum: number) => Promise.resolve({
+          getTextContent: () => Promise.resolve({ items: [{ str: 'Metadata from JSON test content.', transform: [1, 0, 0, 1, 0, 700], height: 12 }] }),
+        }),
+        metadata: {
+          toJSON() { return { title: 'JSON Title', author: 'JSON Author' }; },
+        },
+      } as any;
+      return { promise: Promise.resolve(pdfObj) };
+    });
+
+    const buffer = new ArrayBuffer(1024);
+    const result = await parsePdfFromArrayBuffer(buffer, 'json-meta.pdf');
+
+    expect(result.title).toBe('JSON Title');
+    expect(result.siteName).toBe('JSON Author');
+    expect(result.paragraphs[0]).toContain('Metadata from JSON test content.');
+  });
 });
