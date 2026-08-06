@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ArticleController } from '../lib/article-controller.js';
 import { extractArticle, createArticleFromMarkdownFile, createArticleFromPdf, createArticleFromTextFile, createArticleFromEpub } from '../lib/extractor.js';
+import { translateParagraphs } from '../lib/translator.js';
 
 vi.mock('../lib/extractor.js', async () => {
   const actual = await vi.importActual<typeof import('../lib/extractor.js')>('../lib/extractor.js');
@@ -13,6 +14,10 @@ vi.mock('../lib/extractor.js', async () => {
     createArticleFromEpub: vi.fn(),
   };
 });
+
+vi.mock('../lib/translator.js', () => ({
+  translateParagraphs: vi.fn().mockResolvedValue([]),
+}));
 
 function makeRefs() {
   const section = () => {
