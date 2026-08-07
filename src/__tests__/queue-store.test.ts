@@ -328,6 +328,16 @@ describe('queue-store', () => {
       clearQueue();
       expect(localStorage.getItem('article-reader-queue')).toBeNull();
     });
+
+    it('loadQueue returns an empty array after clearing', () => {
+      const item = makeItem();
+      saveQueue([item]);
+
+      clearQueue();
+
+      const loaded = loadQueue();
+      expect(loaded).toEqual([]);
+    });
   });
 
   describe('createQueueItem', () => {
