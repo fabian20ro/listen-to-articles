@@ -230,5 +230,20 @@ describe('session-store', () => {
       clearLastArticle();
       expect(loadLastArticle()).toBeNull();
     });
+
+    it('returns without crashing when localStorage throws on removeItem', () => {
+      const throwingStorage = {
+        getItem: (_key: string) => null,
+        setItem: (_key: string, _value: string) => {},
+        removeItem: (_key: string) => { throw new DOMException('Quota exceeded', 'QuotaExceededError'); },
+        clear: () => {},
+      };
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: throwingStorage,
+        configurable: true,
+      });
+
+      expect(() => clearLastArticle()).not.toThrow();
+    });
   });
 });
