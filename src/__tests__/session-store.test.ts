@@ -166,6 +166,16 @@ describe('session-store', () => {
       expect(localStorage.getItem('article-reader-last-article')).toBeNull();
     });
 
+    it('removes storage containing a JSON-null value before returning null', () => {
+      localStorage.setItem(
+        'article-reader-last-article',
+        'null',
+      );
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBeNull();
+    });
+
     it('returns null without crashing when localStorage throws on read', () => {
       const throwingStorage = {
         getItem: (_key: string) => { throw new DOMException('Quota exceeded', 'QuotaExceededError'); },
