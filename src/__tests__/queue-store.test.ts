@@ -176,6 +176,28 @@ describe('queue-store', () => {
       expect(loaded).toHaveLength(1);
       expect(localStorage.getItem('article-reader-queue')).toBe(storedBefore);
     });
+
+    it('drops invalid items AND normalizes dirty valid items in a single writeback', () => {
+      // Two simultaneous transformations: filter invalid + sanitize metadata.
+      const dirty = makeItem({ title: '  <Draft>  ', siteName: '', lang: 'xx' });
+      const invalidStructural = { ...makeItem(), id: '' }; // fails isValidQueueItem
+
+      localStorage.setItem('article-reader-queue', JSON.stringify([dirty, invalidStructural]));
+
+      const loaded = loadQueue();
+
+      expect(loaded).toHaveLength(1);
+      expect(loaded[0].id).toBe(dirty.id);
+      expect(loaded[0].title).toBe('Draft');
+      expect(loaded[0].siteName).toBe('example.com'); // fallback from empty siteName + valid url
+      expect(loaded[0].lang).toBe('en');
+
+      const persisted = JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]');
+      expect(persisted).toHaveLength(1); // invalid dropped, only normalized item kept
+      expect(persisted[0].title).toBe('Draft');
+      expect(persisted[0].siteName).toBe('example.com');
+      expect(persisted[0].lang).toBe('en');
+    });
   });
 
   describe('addToQueue', () => {
