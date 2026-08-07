@@ -538,6 +538,18 @@ describe('queue-store', () => {
       // item-29 no longer present anywhere
       expect(result.find((i) => i.id === 'item-29')).toBeUndefined();
     });
+
+    it('replaces the existing entry and preserves relative order of unrelated items', () => {
+      const a = makeItem({ id: 'a', url: 'https://example.com/a', title: 'Old A' });
+      const b = makeItem({ id: 'b', url: 'https://example.com/b', title: 'B' });
+      const c = makeItem({ id: 'c', url: 'https://example.com/c', title: 'C' });
+      const dupA = makeItem({ id: 'a-new', url: 'https://example.com/a', title: 'New A' });
+
+      const result = addToQueue([a, b, c], dupA);
+
+      // Old 'a' is gone; 'b' and 'c' keep their relative positions
+      expect(result.map((i) => i.id)).toEqual(['b', 'c', 'a-new']);
+    });
   });
 
   describe('loadQueue invalid items', () => {

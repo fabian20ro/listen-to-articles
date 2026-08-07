@@ -85,6 +85,9 @@ export function splitLongSentence(sentence: string, maxLen: number): string[] {
 }
 
 export function splitSentences(text: string): string[] {
+  if (typeof text !== 'string') {
+    throw new TypeError('splitSentences expects a string');
+  }
   const raw = text.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g);
   if (!raw) return [text];
   const pieces = raw.map((s) => s.trim()).filter((s) => s.length > 0);

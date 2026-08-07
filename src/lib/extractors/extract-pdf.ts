@@ -107,6 +107,11 @@ function extractDocumentMetadata(pdf: any): { title?: string; author?: string } 
         }
         return s.replace(/\u0000/g, '').trim();
       }
+      if (Array.isArray(value)) {
+        // pdfjs can return title/author as arrays of strings or nested objects.
+        const joined = value.map((v) => decode(v)).join(' ').trim();
+        return joined;
+      }
       return '';
     }
 

@@ -491,6 +491,22 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.paragraphs[0]).toContain('Metadata from JSON test content.');
   });
 
+  it('should decode array-encoded title/author from pdf.info (regression: arrays silently dropped)', async () => {
+    setupMockPdf(1, {
+      Title: ['Article', 'Title'],
+      Author: ['Jane', 'Doe'],
+    }, () => [
+      { str: 'Array metadata test content paragraph.', transform: [1, 0, 0, 1, 0, 700], height: 12 }
+    ]);
+
+    const buffer = new ArrayBuffer(1024);
+    const result = await parsePdfFromArrayBuffer(buffer, 'array-meta.pdf');
+
+    expect(result.title).toBe('Article Title');
+    expect(result.siteName).toBe('Jane Doe');
+    expect(result.paragraphs[0]).toContain('Array metadata test content paragraph.');
+  });
+
   it('should produce an Article through createArticleFromPdf when given a valid file-like object (regression: createArticleFromPdf happy path untested)', async () => {
     setupMockPdf(1, { Title: 'File Article', Author: 'File Author' }, () => [
       { str: 'First paragraph of the article.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
