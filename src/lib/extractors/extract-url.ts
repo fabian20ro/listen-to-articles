@@ -243,7 +243,18 @@ export async function extractArticle(
     }
 
     if (contentType.includes('application/json')) {
-      return JSON.parse(new TextDecoder().decode(respBuffer)) as Article;
+      try {
+        const jsonBody = new TextDecoder().decode(respBuffer);
+        const parsed = JSON.parse(jsonBody) as Article;
+        // Validate required fields — reject incomplete responses early.
+        if (!parsed.content && !parsed.markdown) {
+          throw new Error('Response is missing article content.');
+        }
+        return parsed;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Invalid JSON response.';
+        throw new Error(`Failed to parse article response from ${targetUrl}: ${msg}`);
+      }
     }
 
     // Fallback to HTML

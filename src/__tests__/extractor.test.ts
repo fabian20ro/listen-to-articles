@@ -262,8 +262,12 @@ describe('extractArticle', () => {
 
     const article = await extractArticle(ARTICLE_URL, PROXY);
 
-    expect(article.title).toBe('Test Article'); // from doc.title
+    // Fallback path: title from doc.title, content empty, siteName from hostname
+    expect(article.title).toBe('Test Article');
+    expect(article.content).toBe('');
+    expect(article.siteName).toBe('example.com');
     expect(article.paragraphs.length).toBe(2);
+    expect(article.paragraphs[0]).toContain('first paragraph');
   });
 
   it('throws when article content is empty', async () => {
