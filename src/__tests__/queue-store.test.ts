@@ -176,6 +176,41 @@ describe('queue-store', () => {
       expect(loaded).toHaveLength(1);
       expect(localStorage.getItem('article-reader-queue')).toBe(storedBefore);
     });
+
+    it('drops invalid items AND normalizes dirty valid items in a single writeback', () => {
+      // Two simultaneous transformations: filter invalid + sanitize metadata.
+      const dirty = makeItem({ title: '  <Draft>  ', siteName: '', lang: 'xx' });
+      const invalidStructural = { ...makeItem(), id: '' }; // fails isValidQueueItem
+
+      localStorage.setItem('article-reader-queue', JSON.stringify([dirty, invalidStructural]));
+
+      const loaded = loadQueue();
+
+      expect(loaded).toHaveLength(1);
+      expect(loaded[0].id).toBe(dirty.id);
+      expect(loaded[0].title).toBe('Draft');
+      expect(loaded[0].siteName).toBe('example.com'); // fallback from empty siteName + valid url
+      expect(loaded[0].lang).toBe('en');
+
+      const persisted = JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]');
+      expect(persisted).toHaveLength(1); // invalid dropped, only normalized item kept
+      expect(persisted[0].title).toBe('Draft');
+      expect(persisted[0].siteName).toBe('example.com');
+      expect(persisted[0].lang).toBe('en');
+    });
+
+    it('silently drops items whose URL fails isValidArticleUrl', () => {
+      const valid = makeItem({ id: 'ok' });
+      const badUrl = makeItem({ url: 'not-a-url', title: 'Bad URL' }); // invalid per isValidArticleUrl
+
+      localStorage.setItem('article-reader-queue', JSON.stringify([valid, badUrl]));
+
+      const loaded = loadQueue();
+
+      expect(loaded).toHaveLength(1);
+      expect(loaded[0].id).toBe('ok');
+      expect(JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]')).toEqual([valid]);
+    });
   });
 
   describe('addToQueue', () => {
@@ -475,6 +510,23 @@ describe('queue-store', () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('newer');
       expect(result[0].title).toBe('New');
+    });
+
+    it('removes the existing entry when deduplicating at max capacity', () => {
+      const items: QueueItem[] = [];
+      for (let i = 0; i < 50; i++) {
+        items.push(makeItem({ id: `item-${i}`, url: `https://example.com/${i}` }));
+      }
+      // item-29 has the same URL as the duplicate being added
+      const duplicate = makeItem({ id: 'dup-at-cap', url: 'https://example.com/29', title: 'DupAtCap' });
+      const result = addToQueue(items, duplicate);
+
+      expect(result).toHaveLength(50);
+      // The old item-29 is removed; newest entry (the dup) sits at the end
+      expect(result[49].id).toBe('dup-at-cap');
+      expect(result[49].title).toBe('DupAtCap');
+      // item-29 no longer present anywhere
+      expect(result.find((i) => i.id === 'item-29')).toBeUndefined();
     });
   });
 

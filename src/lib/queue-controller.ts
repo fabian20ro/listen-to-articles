@@ -238,7 +238,7 @@ export class QueueController {
    * If there's a next item, starts the auto-advance countdown.
    */
   handleArticleEnd(): void {
-    if (!this.hasNext()) return;
+    if (!this.hasNext() || this.currentIndex < 0) return;
 
     const next = this.getNextItem();
     if (!next) return;
