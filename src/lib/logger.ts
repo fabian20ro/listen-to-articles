@@ -20,7 +20,9 @@ let isVerbose =
 
 export function setMinLevel(level: LogLevel): void {
   const priority = LEVEL_PRIORITY[level];
-  if (priority == null) return;
+  if (priority === undefined || priority === null) {
+    throw new Error(`setMinLevel: invalid log level "${level}". Expected one of: trace, debug, info, warn, error`);
+  }
   minLevelRef.current = level;
   isVerbose = true;
 }
