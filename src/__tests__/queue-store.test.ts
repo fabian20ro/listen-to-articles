@@ -498,6 +498,23 @@ describe('queue-store', () => {
       expect(result[0].id).toBe('newer');
       expect(result[0].title).toBe('New');
     });
+
+    it('removes the existing entry when deduplicating at max capacity', () => {
+      const items: QueueItem[] = [];
+      for (let i = 0; i < 50; i++) {
+        items.push(makeItem({ id: `item-${i}`, url: `https://example.com/${i}` }));
+      }
+      // item-29 has the same URL as the duplicate being added
+      const duplicate = makeItem({ id: 'dup-at-cap', url: 'https://example.com/29', title: 'DupAtCap' });
+      const result = addToQueue(items, duplicate);
+
+      expect(result).toHaveLength(50);
+      // The old item-29 is removed; newest entry (the dup) sits at the end
+      expect(result[49].id).toBe('dup-at-cap');
+      expect(result[49].title).toBe('DupAtCap');
+      // item-29 no longer present anywhere
+      expect(result.find((i) => i.id === 'item-29')).toBeUndefined();
+    });
   });
 
   describe('loadQueue invalid items', () => {
