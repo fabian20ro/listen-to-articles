@@ -473,8 +473,8 @@ describe('queue-store', () => {
         throw new DOMException('QuotaExceededError', 'Failed to save');
       };
 
-      const a = makeItem({ id: 'a' });
-      const b = makeItem({ id: 'b' });
+      const a = makeItem({ id: 'a', url: 'https://example.com/a' });
+      const b = makeItem({ id: 'b', url: 'https://example.com/b' });
       let failCalled = false;
       const result = reorderQueue([b, a], (err) => { failCalled = true; });
 

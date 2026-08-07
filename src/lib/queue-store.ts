@@ -152,8 +152,9 @@ export function removeFromQueue(items: QueueItem[], id: string, onFail?: (err: u
 
 /** Replace the entire queue (for reordering). Returns the saved queue. */
 export function reorderQueue(items: QueueItem[], onFail?: (err: unknown) => void): QueueItem[] {
-  saveQueue(items, onFail);
-  return items;
+  const deduped = dedupeQueueItems(items);
+  saveQueue(deduped, onFail);
+  return deduped;
 }
 
 /** Clear the entire queue. */
