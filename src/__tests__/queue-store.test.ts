@@ -198,6 +198,19 @@ describe('queue-store', () => {
       expect(persisted[0].siteName).toBe('example.com');
       expect(persisted[0].lang).toBe('en');
     });
+
+    it('silently drops items whose URL fails isValidArticleUrl', () => {
+      const valid = makeItem({ id: 'ok' });
+      const badUrl = makeItem({ url: 'not-a-url', title: 'Bad URL' }); // invalid per isValidArticleUrl
+
+      localStorage.setItem('article-reader-queue', JSON.stringify([valid, badUrl]));
+
+      const loaded = loadQueue();
+
+      expect(loaded).toHaveLength(1);
+      expect(loaded[0].id).toBe('ok');
+      expect(JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]')).toEqual([valid]);
+    });
   });
 
   describe('addToQueue', () => {
