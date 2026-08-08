@@ -101,3 +101,16 @@ export function loadSettings(defaults: SettingsDefaults): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
+
+/**
+ * Reset all settings to their default values by clearing custom storage.
+ * Returns the newly created default settings object so callers can immediately use it.
+ */
+export function resetSettings(defaults: SettingsDefaults): AppSettings {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage unavailable — nothing to remove; fallback below keeps behavior safe.
+  }
+  return createDefaultSettings(defaults);
+}
