@@ -524,12 +524,18 @@ describe('extractArticle', () => {
   });
 
   it('passes TypeError through unchanged when direct fetch fails', async () => {
-    mockFetch(''); // keep the default Response shape but...
     (globalThis.fetch as any).mockImplementationOnce(async () => {
       throw new TypeError('NetworkError');
     });
 
     await expect(extractArticle(ARTICLE_URL, '')).rejects.toThrow(TypeError);
+  });
+
+  it('produces a specific error message for non-ok HTTP responses in direct mode', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response('', { status: 503, statusText: 'Service Unavailable' }));
+
+    await expect(extractArticle(ARTICLE_URL, '', {}, { fetcher: fetchSpy as any }))
+      .rejects.toThrow(/Request failed: 503 Service Unavailable/);
   });
 
   it('throws when YouTube URL is provided without a proxy (direct mode not supported)', async () => {
