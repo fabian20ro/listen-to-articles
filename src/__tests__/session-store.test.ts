@@ -178,7 +178,7 @@ describe('session-store', () => {
 
     it('returns null without crashing when localStorage throws on read', () => {
       const throwingStorage = {
-        getItem: (_key: string) => { throw new DOMException('Quota exceeded', 'QuotaExceededError'); },
+        getItem: (_key: string) => { throw new Error('storage unavailable'); },
         setItem: (_key: string, _value: string) => {},
         removeItem: (_key: string) => {},
         clear: () => {},
@@ -213,6 +213,21 @@ describe('session-store', () => {
       const savedAt = loaded!.savedAt;
       expect(typeof savedAt).toBe('number');
       expect(savedAt === savedAt && savedAt !== Infinity && savedAt !== -Infinity).toBe(true);
+    });
+
+    it('propagates storage write errors (no try/catch on setItem)', () => {
+      const throwingStorage = {
+        getItem: (_key: string) => null,
+        setItem: (_key: string, _value: string) => { throw new DOMException('Quota exceeded', 'QuotaExceededError'); },
+        removeItem: (_key: string) => {},
+        clear: () => {},
+      };
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: throwingStorage,
+        configurable: true,
+      });
+
+      expect(() => saveLastArticle(makeArticle())).toThrow(DOMException);
     });
   });
 
