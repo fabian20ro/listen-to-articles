@@ -178,7 +178,7 @@ describe('session-store', () => {
 
     it('returns null without crashing when localStorage throws on read', () => {
       const throwingStorage = {
-        getItem: (_key: string) => { throw new DOMException('Quota exceeded', 'QuotaExceededError'); },
+        getItem: (_key: string) => { throw new Error('storage unavailable'); },
         setItem: (_key: string, _value: string) => {},
         removeItem: (_key: string) => {},
         clear: () => {},
