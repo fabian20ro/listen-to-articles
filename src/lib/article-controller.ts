@@ -239,6 +239,12 @@ export class ArticleController {
         },
       );
       if (token !== this.loadToken) return;
+
+      if (!article.title.trim() || article.paragraphs.length === 0) {
+        this.showError('Could not extract readable content from the article.');
+        return;
+      }
+
       this.currentArticle = article;
       this.currentArticleUrl = article.resolvedUrl;
       this.displayArticle(article);

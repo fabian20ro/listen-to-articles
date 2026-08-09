@@ -104,6 +104,8 @@ async function translateBatches(
   return results;
 }
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 /** Send a single text chunk to the worker translate endpoint. */
 async function translateSingle(
   text: string,
@@ -119,11 +121,18 @@ async function translateSingle(
 
   let resp: Response;
   try {
-    resp = await fetch(`${proxyBase}?action=translate`, {
-      method: 'POST',
-      headers: buildProxyHeaders(true),
-      body: JSON.stringify({ text, from: sourceLang, to: targetLang }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      resp = await fetch(`${proxyBase}?action=translate`, {
+        method: 'POST',
+        headers: buildProxyHeaders(true),
+        body: JSON.stringify({ text, from: sourceLang, to: targetLang }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch (err: unknown) {
     const cause = err instanceof Error ? err.message : String(err);
     throw new Error(`Could not reach translation service: ${cause}`);
