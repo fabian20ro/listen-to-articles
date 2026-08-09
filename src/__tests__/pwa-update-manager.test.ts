@@ -279,6 +279,21 @@ describe('PwaUpdateManager', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
+  it('forceRefresh with injected reload calls reload exactly once on success', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    const cacheStorage = mockCacheStorage();
+    const reloadSpy = vi.fn();
+
+    const manager = new PwaUpdateManager({ reload: reloadSpy });
+    await manager.init('sw.js');
+
+    const result = await manager.forceRefresh();
+
+    expect(result).toBe('reloaded');
+    expect(cacheStorage.keys).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('deferred reload invokes onUpdateReady callback', async () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
