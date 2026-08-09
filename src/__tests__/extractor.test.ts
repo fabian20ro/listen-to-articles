@@ -274,7 +274,7 @@ describe('extractArticle', () => {
     mockFetch('<html><body></body></html>');
     mockParse.mockReturnValue({ textContent: '' });
 
-    await expect(extractArticle(ARTICLE_URL, PROXY)).rejects.toThrow(/Could not extract readable content/);
+    await expect(extractArticle(ARTICLE_URL, PROXY)).rejects.toThrow('Could not extract readable content from this page.');
   });
 
   it('filters out short paragraphs (< 20 chars)', async () => {
