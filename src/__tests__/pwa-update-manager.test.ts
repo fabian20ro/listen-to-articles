@@ -110,10 +110,12 @@ describe('PwaUpdateManager', () => {
     // remove serviceWorker from navigator
     Object.defineProperty(navigator, 'serviceWorker', { value: undefined, configurable: true });
 
-    const manager = new PwaUpdateManager();
+    const onStatus = vi.fn();
+    const manager = new PwaUpdateManager({ onStatus });
     await manager.init('sw.js');
 
     expect(manager.hasPendingReload()).toBe(false);
+    expect(onStatus).not.toHaveBeenCalled();
   });
 
   it('defers reload when controller changes during active playback', async () => {
@@ -140,11 +142,13 @@ describe('PwaUpdateManager', () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
     const reloadSpy = vi.fn();
+    const onUpdateApplied = vi.fn();
 
     let isPlaying = true;
     const manager = new PwaUpdateManager({
       isPlaybackActive: () => isPlaying,
       reload: reloadSpy,
+      onUpdateApplied,
     });
 
     await manager.init('sw.js');
@@ -154,7 +158,9 @@ describe('PwaUpdateManager', () => {
     const result = manager.applyDeferredReloadIfIdle();
 
     expect(result).toBe('reloaded');
+    expect(manager.hasPendingReload()).toBe(false);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(onUpdateApplied).toHaveBeenCalledTimes(1);
   });
 
   it('forceRefresh updates SW, clears caches, and reloads', async () => {
@@ -271,6 +277,21 @@ describe('PwaUpdateManager', () => {
     expect(result).toBe('failed');
     expect(onStatus).toHaveBeenCalledWith('Update check failed. Try again.');
     expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('forceRefresh with injected reload calls reload exactly once on success', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    const cacheStorage = mockCacheStorage();
+    const reloadSpy = vi.fn();
+
+    const manager = new PwaUpdateManager({ reload: reloadSpy });
+    await manager.init('sw.js');
+
+    const result = await manager.forceRefresh();
+
+    expect(result).toBe('reloaded');
+    expect(cacheStorage.keys).toHaveBeenCalledTimes(1);
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
   it('deferred reload invokes onUpdateReady callback', async () => {
