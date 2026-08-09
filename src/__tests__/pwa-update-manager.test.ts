@@ -110,10 +110,12 @@ describe('PwaUpdateManager', () => {
     // remove serviceWorker from navigator
     Object.defineProperty(navigator, 'serviceWorker', { value: undefined, configurable: true });
 
-    const manager = new PwaUpdateManager();
+    const onStatus = vi.fn();
+    const manager = new PwaUpdateManager({ onStatus });
     await manager.init('sw.js');
 
     expect(manager.hasPendingReload()).toBe(false);
+    expect(onStatus).not.toHaveBeenCalled();
   });
 
   it('defers reload when controller changes during active playback', async () => {
