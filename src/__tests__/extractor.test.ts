@@ -590,8 +590,12 @@ describe('createArticleFromText', () => {
     expect(article.title).toBe('Pasted Article');
   });
 
-  it('handles very short text gracefully', () => {
-    expect(() => createArticleFromText('A')).toThrow('Pasted text is too short to read as an article.');
+  it('throws a specific error for very short pasted text', () => {
+    expect(() => createArticleFromText('A')).toThrow(/^Pasted text is too short/);
+  });
+
+  it('throws when passed empty string', () => {
+    expect(() => createArticleFromText('')).toThrow(/too short/i);
   });
 });
 
