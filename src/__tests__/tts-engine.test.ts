@@ -760,6 +760,54 @@ describe('TTSEngine', () => {
     expect(onParagraphChange).toHaveBeenCalledWith(0, '## Section Title\nThis is the first paragraph.');
   });
 
+  it('loadArticle during active playback stops current playback and resets position', () => {
+    const engine = createEngine();
+    engine.loadArticle(['First article content that is long enough to stand alone.', 'Second sentence here.'], 'en');
+    engine.play();
+
+    expect(engine.state.isPlaying).toBe(true);
+    expect(mockSynth.speak).toHaveBeenCalled();
+
+    // Load a new article while still playing — should stop current playback
+    engine.loadArticle(['New first paragraph content that is long enough to stand alone.', 'New second sentence here.'], 'en');
+
+    expect(engine.state.isPlaying).toBe(false);
+    expect(engine.state.currentParagraph).toBe(0);
+    expect(engine.state.currentSentence).toBe(0);
+    // The new article should be loaded and ready to play (not stuck in error state)
+    expect(mockSynth.speak).toHaveBeenCalledTimes(1); // original speak not cancelled by loadArticle
+  });
+
+  it('loadArticle with zero paragraphs results in empty state', () => {
+    const engine = createEngine();
+    engine.loadArticle(['Initial content.'], 'en');
+    expect(engine.state.totalParagraphs).toBe(1);
+
+    // Load an empty article — should result in zero paragraphs, no crash
+    engine.loadArticle([], 'en');
+
+    expect(engine.state.totalParagraphs).toBe(0);
+    expect(engine.state.currentParagraph).toBe(0);
+    expect(engine.state.currentSentence).toBe(0);
+  });
+
+  it('loadArticle resets voice selection with new language', () => {
+    const voices = [
+      makeVoice('Google US English', 'en-US'),
+      makeVoice('Google română', 'ro-RO'),
+    ];
+    mockSynth.getVoices.mockReturnValue(voices);
+
+    const engine = createEngine();
+    (engine as unknown as Record<string, unknown[]>).allVoices = voices;
+    engine.loadArticle(['Hello.'], 'en');
+    expect((engine as unknown as Record<string, null | SpeechSynthesisVoice>).voice?.name).toBe('Google US English');
+
+    // Switch to Romanian — voice selection should update
+    engine.loadArticle(['Bună ziua.'], 'ro');
+    expect((engine as unknown as Record<string, null | SpeechSynthesisVoice>).voice?.name).toBe('Google română');
+  });
+
   it('fires onProgress callback', () => {
     const onProgress = vi.fn();
     const engine = createEngine({ onProgress });
