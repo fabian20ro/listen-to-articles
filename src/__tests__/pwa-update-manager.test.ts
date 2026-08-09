@@ -142,11 +142,13 @@ describe('PwaUpdateManager', () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
     const reloadSpy = vi.fn();
+    const onUpdateApplied = vi.fn();
 
     let isPlaying = true;
     const manager = new PwaUpdateManager({
       isPlaybackActive: () => isPlaying,
       reload: reloadSpy,
+      onUpdateApplied,
     });
 
     await manager.init('sw.js');
@@ -156,7 +158,9 @@ describe('PwaUpdateManager', () => {
     const result = manager.applyDeferredReloadIfIdle();
 
     expect(result).toBe('reloaded');
+    expect(manager.hasPendingReload()).toBe(false);
     expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(onUpdateApplied).toHaveBeenCalledTimes(1);
   });
 
   it('forceRefresh updates SW, clears caches, and reloads', async () => {
