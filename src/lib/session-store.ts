@@ -35,7 +35,8 @@ export function saveLastArticle(article: Article): void {
     article,
     savedAt: Date.now(),
   };
-  localStorage.setItem(LAST_ARTICLE_KEY, JSON.stringify(payload));
+  const json = JSON.stringify(payload);
+  localStorage.setItem(LAST_ARTICLE_KEY, json);
 }
 
 export function loadLastArticle(): LastSessionData | null {
