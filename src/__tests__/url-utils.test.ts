@@ -119,6 +119,11 @@ describe('extractUrl', () => {
     const article = 'Article Title\n\nFirst paragraph with https://example.com/ref in the middle.\n\nSecond paragraph continues here.';
     expect(extractUrl(article)).toBeNull();
   });
+
+  it('rejects a protocol-relative URL (regex matches but validation fails)', () => {
+    // The regex matches '//' prefixes, but isValidArticleUrl rejects them.
+    expect(extractUrl('//example.com/article')).toBeNull();
+  });
 });
 
 // ── getUrlFromParams ────────────────────────────────────────────────
