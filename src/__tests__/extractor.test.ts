@@ -1008,6 +1008,13 @@ describe('extractArticleFromEpubUrl', () => {
     await expect(extractArticleFromEpubUrl('https://gutenberg.org/ebooks/49038.epub', PROXY))
       .rejects.toThrow(/too large/i);
   });
+
+  it('throws when proxy returns 403', async () => {
+    mockFetch('', 403);
+
+    await expect(extractArticleFromEpubUrl('https://gutenberg.org/ebooks/49038.epub', PROXY))
+      .rejects.toThrow(/Proxy rejected the request/i);
+  });
 });
 
 describe('extractArticleFromYoutube', () => {
