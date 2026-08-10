@@ -764,6 +764,77 @@ describe('ArticleController', () => {
     expect(refs.errorSection.classList.contains('hidden')).toBe(false);
   });
 
+  it('replaces article content with translated paragraphs on successful translation', async () => {
+    const originalArticle = {
+      title: 'Translatable',
+      content: '<p>original</p>',
+      textContent: 'original',
+      markdown: 'original',
+      paragraphs: ['original paragraph'],
+      lang: 'en',
+      htmlLang: 'en',
+      siteName: 'Site',
+      excerpt: '',
+      wordCount: 10,
+      estimatedMinutes: 1,
+      resolvedUrl: 'https://example.com/translatable',
+    } as any;
+
+    const translatedParagraphs = ['translated paragraph'];
+    vi.mocked(translateParagraphs).mockResolvedValueOnce(translatedParagraphs);
+
+    const refs = makeRefs();
+    const controller = new ArticleController({
+      refs,
+      tts: { stop: vi.fn(), loadArticle: vi.fn(), setLang: vi.fn() },
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+    });
+
+    await controller.loadArticleFromStored(originalArticle);
+    // Trigger translation.
+    (controller as any).currentTtsParagraphs = ['original paragraph'];
+    await (controller as any).translateCurrentArticle();
+
+    expect(controller.getCurrentArticle()?.lang).toBe('en');
+    expect(controller.getCurrentArticle()?.paragraphs).toEqual(translatedParagraphs);
+    expect(controller.getCurrentArticle()?.textContent).toBe('translated paragraph');
+  });
+
+  it('does not silently erase article when translateParagraphs returns empty', async () => {
+    const originalArticle = {
+      title: 'Empty Translation',
+      content: '<p>original</p>',
+      textContent: 'original',
+      markdown: 'original',
+      paragraphs: ['original paragraph'],
+      lang: 'en',
+      htmlLang: 'en',
+      siteName: 'Site',
+      excerpt: '',
+      wordCount: 10,
+      estimatedMinutes: 1,
+      resolvedUrl: 'https://example.com/empty-trans',
+    } as any;
+
+    vi.mocked(translateParagraphs).mockResolvedValueOnce([]);
+
+    const refs = makeRefs();
+    const controller = new ArticleController({
+      refs,
+      tts: { stop: vi.fn(), loadArticle: vi.fn(), setLang: vi.fn() },
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+    });
+
+    await controller.loadArticleFromStored(originalArticle);
+    (controller as any).currentTtsParagraphs = ['original paragraph'];
+    await (controller as any).translateCurrentArticle();
+
+    // The article title should still be visible — not silently blanked.
+    expect(refs.articleTitle.textContent).toBe('Empty Translation');
+  });
+
   it('rejects files with unsupported extensions and shows an error', async () => {
     const refs = makeRefs();
     const controller = new ArticleController({
