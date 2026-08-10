@@ -90,6 +90,20 @@ describe('utils.ts', () => {
       expect(result.length).toBe(2);
       expect(result[0]).toBe('Para 1 content is here.');
     });
+
+    it('collapses consecutive blank lines into a single paragraph separator', () => {
+      // Production code splits on /\\n\\s*\\n+/ so any number of blank lines should act as one.
+      const markdown = '# Title\n\n\nPara 1 content is here.\n\n\n\nPara 2 content is here.';
+      const result = markdownToParagraphs(markdown);
+      expect(result.length).toBe(2);
+    });
+
+    it('filters out leading-whitespace-only blocks that strip to empty', () => {
+      // A block of spaces/tabs should not produce a phantom empty paragraph.
+      const markdown = '\n\n   \t\t  \n\nPara 1 content is here.\n\nPara 2 content is here.';
+      const result = markdownToParagraphs(markdown);
+      expect(result.length).toBe(2);
+    });
   });
 
   describe('extractTitleFromMarkdown', () => {
