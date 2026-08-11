@@ -30,10 +30,10 @@ describe('utils.ts', () => {
   });
 
   describe('stripNonTextContent', () => {
-    it('strips HTML tags', () => {
+    it('strips HTML tags and normalizes spacing', () => {
       const input = '<p>Hello <b class="foo">world</b>!</p>';
       const result = stripNonTextContent(input);
-      expect(result).toMatch(/Hello\s+world\s*!/);
+      expect(result).toBe('Hello world !');
     });
 
     it('strips data URIs', () => {
