@@ -169,6 +169,30 @@ describe('fetchTtsAudio', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('builds the fetch URL with the correct structure and encoded params', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['audio']),
+    } as any);
+
+    const result = await fetchTtsAudio('hello world', 'en-US', config);
+    expect(result).toBe('blob:url');
+
+    const [calledUrl] = vi.mocked(fetch).mock.calls[0];
+    // URL must start with proxyBase + literal /?action=tts separator
+    expect(calledUrl).toMatch(
+      new RegExp(`^${escapeRegExp(config.proxyBase)}/\\?action=tts&text=.*&lang=.*`),
+    );
+    // Parameters must be percent-encoded — no raw spaces or special chars
+    expect(calledUrl).not.toContain(' ');
+    expect(calledUrl).toContain(encodeURIComponent('hello world'));
+    expect(calledUrl).toContain(encodeURIComponent('en-US'));
+  });
+
+  function escapeRegExp(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   it('cancels in-flight fetch when caller aborts signal mid-call', async () => {
     const controller = new AbortController();
 
