@@ -453,6 +453,17 @@ describe('TTSEngine', () => {
     expect(engine.state.currentParagraph).toBe(0);
   });
 
+  it('strips markdown headers before sentence-splitting on loadArticle()', () => {
+    const engine = createEngine();
+    engine.loadArticle(['## Introduction\nThis is the body text. Another sentence here.'], 'en');
+    engine.play();
+
+    // Spoken utterances come from post-strip paragraphs — no header markers allowed
+    const firstUtter = mockSynth.speak.mock.calls[0][0] as MockUtterance;
+    expect(firstUtter.text).not.toContain('##');
+    expect(firstUtter.text).toContain('This is the body text.');
+  });
+
   it('transitions to playing state on play()', () => {
     const onStateChange = vi.fn();
     const engine = createEngine({ onStateChange });
