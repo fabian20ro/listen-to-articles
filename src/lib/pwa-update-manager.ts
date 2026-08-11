@@ -17,6 +17,11 @@ export class PwaUpdateManager {
   private refreshing = false;
   private pendingReload = false;
 
+  // Debounce visibility-change events — rapid tab/app switching can fire this
+  // many times in quick succession. Coalesce into a single check ~500ms after the
+  // last event to avoid spamming the network with service-worker update requests.
+  private _visibilityCheckTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(private readonly options: PwaUpdateManagerOptions = {}) {}
 
   async init(scriptUrl = 'sw.js'): Promise<void> {

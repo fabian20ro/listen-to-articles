@@ -1,6 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { parsePdfFromArrayBuffer, createArticleFromPdf, extractParagraphsFromTextItems } from '../lib/extractors/extract-pdf';
 import { MAX_PDF_SIZE, MIN_PARAGRAPH_LENGTH } from '../lib/extractors/types.js';
+
+const pdfJsMock = vi.hoisted(() => ({
+  getDocument: vi.fn(),
+  GlobalWorkerOptions: {},
+}));
+
+vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => pdfJsMock);
 
 describe('extractParagraphsFromTextItems', () => {
   it('should handle empty or whitespace-only strings', () => {
@@ -317,15 +324,6 @@ describe('createArticleFromPdf - input guards', () => {
 });
 
 describe('parsePdfFromArrayBuffer - happy path integration', () => {
-  const mock = vi.hoisted(() => ({
-    getDocument: vi.fn(),
-    GlobalWorkerOptions: {},
-  }));
-
-  beforeEach(() => {
-    vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => mock);
-  });
-
   function setupMockPdf(numPages: number, info: any, itemsPerPage: (pageNum: number) => Array<{ str: string; transform: number[]; height?: number }>) {
     const getPage = vi.fn((pageNum: number) => Promise.resolve({
       getTextContent: () => Promise.resolve({
@@ -333,7 +331,7 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
       }),
     }));
 
-    mock.getDocument.mockReturnValue({ promise: Promise.resolve({
+    pdfJsMock.getDocument.mockReturnValue({ promise: Promise.resolve({
       numPages,
       info,
       getPage,
@@ -468,8 +466,7 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     ]);
 
     // Patch the mock to add metadata.toJSON() on the returned pdf object.
-    const originalGetDocument = mock.getDocument;
-    mock.getDocument.mockImplementation((_params: any) => {
+    pdfJsMock.getDocument.mockImplementation((_params: any) => {
       const pdfObj = {
         numPages: 1,
         info: {},
