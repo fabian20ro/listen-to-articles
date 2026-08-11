@@ -169,6 +169,37 @@ describe('extractTitleFromMarkdown', () => {
 });
 
 
+// ── splitTextBySentences ──────────────────────────────────────────
+
+describe('splitTextBySentences', () => {
+  it('groups sentences by the default paragraph size of 3', () => {
+    const text = 'This is a longer sentence with enough words to pass.'; // 1st chunk >=20
+    expect(splitTextBySentences(text)).toEqual([text.trim()]); // <=3 sentences, returned as-is
+  });
+
+  it('respects a custom sentencesPerParagraph count', () => {
+    const text = 'Alpha sentence with enough words to pass the filter.';
+    expect(splitTextBySentences(text, 5)).toEqual([text.trim()]); // 1 sentence <= 5 → returned as-is
+  });
+
+  it('drops chunks shorter than minChars', () => {
+    // Many short sentences that individually stay under the 20-char threshold
+    const text = 'Hi. Yo. Hey. Oh. Ah. Uh.';
+    expect(splitTextBySentences(text)).toEqual([]);
+  });
+
+  it('returns a single paragraph when there are fewer sentences than the paragraph size', () => {
+    const text = 'A longer sentence with enough words to pass.';
+    expect(splitTextBySentences(text, 10)).toEqual([text.trim()]);
+  });
+
+  it('excludes chunks that fail isSpeakableText', () => {
+    const text = '!'.repeat(30); // not speakable
+    expect(splitTextBySentences(text)).toEqual([]);
+  });
+});
+
+
 // ── extractArticle ──────────────────────────────────────────────────
 
 describe('extractArticle', () => {
