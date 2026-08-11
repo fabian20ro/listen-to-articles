@@ -227,4 +227,35 @@ describe('fetchTtsAudio', () => {
     const result = await promise;
     expect(result).toBeNull();
   });
+
+  it('removes the caller-signal abort listener after successful fetch', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['audio']),
+    } as any);
+
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    await fetchTtsAudio('hello', 'en', config, controller.signal);
+
+    expect(removeSpy).toHaveBeenCalledOnce();
+    expect(removeSpy.mock.calls[0][0]).toBe('abort');
+  });
+
+  it('removes the caller-signal abort listener after each fetch attempt', async () => {
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(
+      (cb: any) => { cb(); return 0; },
+    );
+
+    vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    await fetchTtsAudio('hello', 'en', config, controller.signal);
+
+    // Two attempts — each attemptFetch creates and tears down its own listener.
+    expect(removeSpy).toHaveBeenCalledTimes(2);
+  });
 });

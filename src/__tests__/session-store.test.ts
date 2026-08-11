@@ -136,6 +136,16 @@ describe('session-store', () => {
       expect(localStorage.getItem('article-reader-last-article')).toBeNull();
     });
 
+    it('removes articles where a numeric field is a string before returning null', () => {
+      localStorage.setItem(
+        'article-reader-last-article',
+        JSON.stringify({ article: { ...makeArticle(), wordCount: '500' }, savedAt: 123456789 }),
+      );
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBeNull();
+    });
+
     it('removes articles where the article field is a non-object primitive before returning null', () => {
       localStorage.setItem(
         'article-reader-last-article',

@@ -350,6 +350,28 @@ describe('ArticleController', () => {
     expect(refs.errorSection.classList.contains('hidden')).toBe(false);
   });
 
+  it('silently returns from handleUrlSubmit when urlInput is empty or whitespace-only', () => {
+    const refs = makeRefs();
+    const ttsMock = { stop: vi.fn(), loadArticle: vi.fn(), setLang: vi.fn() };
+    const controller = new ArticleController({
+      refs,
+      tts: ttsMock as any,
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+    });
+    controller.init();
+
+    refs.urlInput.value = '   ';
+    refs.goBtn.click();
+
+    // The controller early-returns on !raw — no error shown, TTS not touched.
+    expect(refs.errorMessage.textContent).toBe('');
+    expect(ttsMock.stop).not.toHaveBeenCalled();
+    expect(extractArticle).not.toHaveBeenCalled();
+    expect(refs.errorSection.classList.contains('hidden')).toBe(true);
+    expect(refs.articleSection.classList.contains('hidden')).toBe(true);
+  });
+
   it('treats non-URL pasted text as a plain-text article via createArticleFromText', async () => {
     const refs = makeRefs();
     const ttsMock = {

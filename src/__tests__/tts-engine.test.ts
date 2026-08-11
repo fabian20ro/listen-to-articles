@@ -877,6 +877,34 @@ describe('TTSEngine', () => {
     expect(utter.voice?.name).toBe('Ioana');
   });
 
+  it('setLang() falls back when preferred voice does not match the new language', () => {
+    // Preferred voice "Samantha" is en-GB; switch to Romanian where it cannot match.
+    const voices = [
+      makeVoice('Samantha', 'en-GB'),
+      makeVoice('Google US English', 'en-US'),
+      makeVoice('Ioana', 'ro-RO'),
+      makeVoice('Google română', 'ro-RO'),
+    ];
+    mockSynth.getVoices.mockReturnValue(voices);
+
+    const engine = createEngine();
+    (engine as unknown as Record<string, unknown[]>).allVoices = voices;
+
+    engine.setVoice('Samantha'); // set en-GB preference
+    engine.loadArticle(['Hello.'], 'en');
+    engine.play();
+    expect(mockSynth.speak.mock.calls[0][0].voice?.name).toBe('Samantha');
+
+    // Switch language to Romanian — preferred voice is en-GB and should be ignored
+    engine.setLang('ro');
+    engine.loadArticle(['Bună ziua.'], 'ro');
+    engine.play();
+
+    const utter = mockSynth.speak.mock.calls[1][0] as MockUtterance;
+    // Google enhanced Romanian voice is preferred over plain "Ioana"
+    expect(utter.voice?.name).toBe('Google română');
+  });
+
   // ── Device voice only (audio backend swap) ──────────────────────
 
   it('setDeviceVoiceOnly(true) disables the audio backend', () => {
