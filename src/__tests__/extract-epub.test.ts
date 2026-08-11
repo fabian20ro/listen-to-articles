@@ -45,6 +45,26 @@ describe('sanitizeHref', () => {
   it('silently returns empty string for invalid percent-encoded characters (e.g. "%GG")', () => {
     expect(sanitizeHref('chapters%GGintro.xhtml')).toBe('');
   });
+
+  it('normalizes Windows-style backslash separators to forward slashes', () => {
+    // sanitizeHref replaces '\\' with '/' before path traversal resolution,
+    // so EPUBs authored on Windows cannot smuggle '..' past the guard.
+    expect(sanitizeHref('chapters\\intro.xhtml')).toBe('chapters/intro.xhtml');
+    expect(sanitizeHref('a\\b\\c\\d.epub')).toBe('a/b/c/d.epub');
+  });
+
+  it('resolves double-dot traversal embedded in Windows-style paths', () => {
+    // '\\..' must collapse just like '../' does.
+    expect(sanitizeHref('chapters\\..\\secret.xhtml')).toBe('secret.xhtml');
+    expect(sanitizeHref('\\..\\etc\\passwd')).toBe('etc/passwd');
+  });
+
+  it('handles mixed forward-slash and backslash separators', () => {
+    // Real-world EPUBs may contain both styles in a single href.
+    expect(sanitizeHref('chapters/../text\\intro.xhtml')).toBe('text/intro.xhtml');
+    // '..' does not traverse past root, so 'a/b/c/../../d/e' → 'a/d/e'
+    expect(sanitizeHref('a/b/c/../../d\\e.xhtml')).toBe('a/d/e.xhtml');
+  });
 });
 
 describe('parseEpubFromArrayBuffer', () => {

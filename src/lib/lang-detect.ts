@@ -20,7 +20,9 @@ const RO_WORDS = [
   // Additional common Romanian stop words for better coverage
   'aceasta', 'așa', 'cum', 'dar', 'dintr', 'din',
   'era', 'fără', 'între', 'lângă', 'mulți', 'multe',
-  'ne', 'niște', 'pe', 'se', 'trecut', 'totuși', 'trebuie'
+  'ne', 'niște', 'pe', 'se', 'trecut', 'totuși', 'trebuie',
+  // High-frequency function words missing from baseline coverage
+  'iar', 'însă'
 ];
 
 /**

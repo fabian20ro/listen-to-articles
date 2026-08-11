@@ -243,6 +243,23 @@ describe('fetchTtsAudio', () => {
     expect(removeSpy.mock.calls[0][0]).toBe('abort');
   });
 
+  it('removes the caller-signal abort listener on permanent error (404)', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 404,
+    } as any);
+
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    const result = await fetchTtsAudio('hello', 'en', config, controller.signal);
+
+    expect(result).toBeNull();
+    // try/finally in attemptFetch always runs cleanup even when throwing.
+    expect(removeSpy).toHaveBeenCalledOnce();
+    expect(removeSpy.mock.calls[0][0]).toBe('abort');
+  });
+
   it('removes the caller-signal abort listener after each fetch attempt', async () => {
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(
       (cb: any) => { cb(); return 0; },
