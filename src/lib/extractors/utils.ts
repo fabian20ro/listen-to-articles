@@ -118,6 +118,10 @@ export function splitSentences(text: string): string[] {
   // so they don't trigger incorrect boundaries or get dropped from output.
   const ABBREV_RE = /(?:^|\s)(?:Mr|Mrs|Ms|Dr|Prof|e\.g|i\.e|vs|etc)\.?$/i;
 
+  // Normalize ellipsis and other multi-char punctuation to single sentence-ending tokens.
+  // Without this, "Hello..." would split into ["Hello.", ".", "."] — three junk fragments.
+  const normalized = text.replace(/\.\.\./g, '.').trim();
+
   const segments: string[] = [];
   let current = '';
   let prevAbbr = false;
