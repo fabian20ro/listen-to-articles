@@ -582,6 +582,34 @@ describe('TTSEngine', () => {
     vi.runAllTimers();
   });
 
+  it('pause() is a no-op when already paused', () => {
+    const engine = createEngine();
+    engine.loadArticle(['Hello world.'], 'en');
+    engine.play();
+    engine.pause();
+    expect(engine.state.isPaused).toBe(true);
+
+    // Second pause call — should be harmless idempotent operation
+    const speaksBefore = mockSynth.speak.mock.calls.length;
+    const pausesBefore = mockSynth.pause.mock.calls.length;
+    engine.pause();
+
+    expect(engine.state.isPaused).toBe(true);
+    expect(mockSynth.speak).toHaveBeenCalledTimes(speaksBefore);
+  });
+
+  it('resume() is a no-op when not paused', () => {
+    const engine = createEngine();
+    engine.loadArticle(['Hello world.'], 'en');
+    // Do NOT call play — state remains stopped/paused=false
+
+    expect(engine.state.isPaused).toBe(false);
+    engine.resume();
+
+    expect(engine.state.isPaused).toBe(false);
+    expect(mockSynth.resume).not.toHaveBeenCalled();
+  });
+
   it('stop() cancels synthesis and resets position', () => {
     const engine = createEngine();
     engine.loadArticle(['First. Second.', 'Third.'], 'en');
