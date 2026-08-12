@@ -920,6 +920,65 @@ describe('createArticleFromPdf', () => {
 });
 
 
+// ── extractParagraphsFromTextItems (extract-pdf.ts) ────────────────
+
+describe('extractParagraphsFromTextItems', () => {
+  it('returns single-item array for one input item', () => {
+    const items = [
+      { str: 'Just a block of text here.', transform: [1, 0, 0, 1, 0, 0], height: 12 },
+    ];
+    expect(extractParagraphsFromTextItems(items)).toEqual(['Just a block of text here.']);
+  });
+
+  it('joins adjacent items on the same line with space', () => {
+    const items = [
+      { str: 'Hello world.', transform: [1, 0, 0, 1, 0, 70], height: 12 },
+      { str: 'Second half of paragraph here.', transform: [1, 0, 0, 1, 0, 65], height: 12 },
+    ];
+    expect(extractParagraphsFromTextItems(items)).toEqual(['Hello world. Second half of paragraph here.']);
+  });
+
+  it('detects paragraph boundary from vertical position gap', () => {
+    const items = [
+      { str: 'First paragraph text content with enough words to pass.', transform: [1, 0, 0, 1, 0, 70], height: 12 },
+      // Y drops by 50 — larger than 1.5 × lineSpacing (18), so new paragraph
+      { str: 'Second paragraph here with enough words to be valid.', transform: [1, 0, 0, 1, 0, 20], height: 12 },
+    ];
+    const result = extractParagraphsFromTextItems(items);
+    expect(result).toEqual([
+      'First paragraph text content with enough words to pass.',
+      'Second paragraph here with enough words to be valid.',
+    ]);
+  });
+
+  it('strips trailing hyphen and joins across line break', () => {
+    const items = [
+      { str: 'This is a long word-', transform: [1, 0, 0, 1, 0, 70], height: 12 },
+      { str: 'that continues on the next line.', transform: [1, 0, 0, 1, 0, 65], height: 12 },
+    ];
+    expect(extractParagraphsFromTextItems(items)).toEqual(['This is a long word that continues on the next line.']);
+  });
+
+  it('skips empty and whitespace-only items', () => {
+    const items = [
+      { str: 'Real content here.', transform: [1, 0, 0, 1, 0, 70], height: 12 },
+      { str: '', transform: [1, 0, 0, 1, 0, 68], height: 12 },
+      { str: '   ', transform: [1, 0, 0, 1, 0, 66], height: 12 },
+    ];
+    expect(extractParagraphsFromTextItems(items)).toEqual(['Real content here.']);
+  });
+
+  it('returns empty array for no items', () => {
+    expect(extractParagraphsFromTextItems([])).toEqual([]);
+  });
+
+  it('handles null or undefined input as empty', () => {
+    expect(extractParagraphsFromTextItems(null as any)).toEqual([]);
+    expect(extractParagraphsFromTextItems(undefined as any)).toEqual([]);
+  });
+});
+
+
 describe('extractArticle YouTube /v URL path', () => {
   it('handles youtube urls with /v path without trailing slash', async () => {
     const YOUTUBE_URL = 'https://youtube.com/v?v=abc';

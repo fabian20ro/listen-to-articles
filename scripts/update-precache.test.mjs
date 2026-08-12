@@ -305,6 +305,43 @@ describe('update-precache', () => {
     }
   });
 
+  it('preserves rich manifest metadata while replacing icons with stable paths', () => {
+    const source = JSON.stringify({
+      name: 'Pixel Reader',
+      short_name: 'PixelReader',
+      description: 'Read articles pixel by pixel',
+      start_url: '/reader/',
+      theme_color: '#ffffff',
+      background_color: '#fafafa',
+      display: 'standalone',
+      icons: [{ src: './icons/old.png' }, { src: './icons/legacy.svg' }],
+    });
+
+    const manifest = renderStableManifest(source);
+    const parsed = JSON.parse(manifest);
+
+    // Rich metadata preserved verbatim.
+    expect(parsed.name).toBe('Pixel Reader');
+    expect(parsed.short_name).toBe('PixelReader');
+    expect(parsed.description).toBe('Read articles pixel by pixel');
+    expect(parsed.start_url).toBe('/reader/');
+    expect(parsed.theme_color).toBe('#ffffff');
+    expect(parsed.background_color).toBe('#fafafa');
+    expect(parsed.display).toBe('standalone');
+
+    // Icons replaced with stable paths.
+    expect(parsed.icons).toHaveLength(2);
+    expect(parsed.icons[0].src).toBe('./icons/icon-192.png');
+    expect(parsed.icons[0].sizes).toBe('192x192');
+    expect(parsed.icons[1].src).toBe('./icons/icon-512.png');
+    expect(parsed.icons[1].type).toBe('image/png');
+
+    // Old icon references are gone.
+    const raw = renderStableManifest(source);
+    expect(raw).not.toContain('./icons/old.png');
+    expect(raw).not.toContain('./icons/legacy.svg');
+  });
+
   it('overwrites icons in renderStableManifest and rewrites apple-touch-icon href', () => {
     const source = JSON.stringify({
       name: 'Pixel Reader',
