@@ -15,6 +15,8 @@ import {
   splitTextBySentences,
   extractParagraphsFromTextItems,
   MIN_PARAGRAPH_LENGTH,
+  IMAGE_MD_RE,
+  IMAGE_HTML_RE,
 } from '../lib/extractor.js';
 import { sanitizeRenderedHtml, parseArticleFromHtml } from '../lib/extractors/extract-html.js';
 import { extractTitleFromMarkdown } from '../lib/extractors/utils.js';
@@ -165,6 +167,69 @@ describe('extractTitleFromMarkdown', () => {
   it('strips markdown syntax from first line without H1', () => {
     const markdown = '**Bold Title**\n\nBody with **bold text**.';
     expect(extractTitleFromMarkdown(markdown)).toBe('Bold Title');
+  });
+});
+
+// ── IMAGE_MD_RE (markdown image pattern) ──────────────
+
+describe('IMAGE_MD_RE', () => {
+  it('strips a simple markdown image link', () => {
+    const md = '![Alt text](https://example.com/img.png)';
+    expect(md.replace(IMAGE_MD_RE, '')).toBe('');
+  });
+
+  it('strips an image with nested parentheses in alt text', () => {
+    const md = '![text (with) parens](https://example.com/img.png)';
+    expect(md.replace(IMAGE_MD_RE, '')).toBe('');
+  });
+
+  it('strips multiple images on one line leaving other text intact', () => {
+    const md = 'Before ![a](x.png) middle ![b](y.png) after';
+    expect(md.replace(IMAGE_MD_RE, '')).toContain('Before');
+    expect(md.replace(IMAGE_MD_RE, '')).toContain('middle');
+    expect(md.replace(IMAGE_MD_RE, '')).toContain('after');
+  });
+
+  it('does not match a non-image markdown link', () => {
+    const md = '[Link text](https://example.com)';
+    expect(md.replace(IMAGE_MD_RE, '')).toBe('[Link text](https://example.com)');
+  });
+
+  it('handles images with empty alt text', () => {
+    const md = '![](https://example.com/img.png)';
+    expect(md.replace(IMAGE_MD_RE, '')).toBe('');
+  });
+});
+
+
+// ── IMAGE_HTML_RE (HTML img tag pattern) ──────────────
+
+describe('IMAGE_HTML_RE', () => {
+  it('strips a self-closing img tag', () => {
+    const html = '<p>text</p><img src="x.png" /><p>more text</p>';
+    expect(html.replace(IMAGE_HTML_RE, '')).toContain('<p>text</p>');
+    expect(html.replace(IMAGE_HTML_RE, '')).toContain('<p>more text</p>');
+  });
+
+  it('strips an img tag with attributes', () => {
+    const html = '<img src="x.png" alt="test" class="responsive">';
+    expect(html.replace(IMAGE_HTML_RE, '')).toBe('');
+  });
+
+  it('matches img tags regardless of attribute order and casing', () => {
+    const html = '<IMG SRC="https://example.com/a.jpg" />';
+    expect(html.replace(IMAGE_HTML_RE, '')).toBe('');
+  });
+
+  it('does not match anchor or paragraph elements', () => {
+    const html = '<a href="/x">link</a><p>paragraph text</p>';
+    expect(html.replace(IMAGE_HTML_RE, '')).toBe('<a href="/x">link</a><p>paragraph text</p>');
+  });
+
+  it('preserves surrounding HTML when removing images', () => {
+    const html = '<div><img src="i.png"></div><p>safe paragraph content with enough words to pass the filter.</p>';
+    expect(html.replace(IMAGE_HTML_RE, '')).toContain('<div></div>');
+    expect(html.replace(IMAGE_HTML_RE, '')).not.toContain('<img');
   });
 });
 
