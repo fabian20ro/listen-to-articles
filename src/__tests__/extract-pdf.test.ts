@@ -372,6 +372,17 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.paragraphs[1]).toContain('Page 2 content');
   });
 
+  it('should throw when all extracted paragraphs are below MIN_PARAGRAPH_LENGTH', async () => {
+    // Items on the same line form one paragraph; short enough to fall below MIN_PARAGRAPH_LENGTH (20).
+    setupMockPdf(1, {}, () => [
+      { str: 'Short.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
+      { str: 'Tiny', transform: [1, 0, 0, 1, 0, 693], height: 12 } // gap 7 <= threshold → same paragraph
+    ]);
+
+    const buffer = new ArrayBuffer(1024);
+    await expect(parsePdfFromArrayBuffer(buffer, 'short-content.pdf')).rejects.toThrow(/Could not extract text from PDF/);
+  });
+
   it('should use filename as title when no metadata present', async () => {
     setupMockPdf(1, {}, () => [
       { str: 'Some content here for the article.', transform: [1, 0, 0, 1, 0, 700], height: 12 }
