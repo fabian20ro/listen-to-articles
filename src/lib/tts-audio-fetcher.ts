@@ -35,6 +35,8 @@ export async function fetchTtsAudio(
     }
     // Transient error (network error, timeout, or non-retryable HTTP status)
     await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    // If caller aborted during the retry delay, skip the second attempt.
+    if (signal?.aborted) return null;
     try {
       return await attemptFetch(text, lang, config, signal);
     } catch {

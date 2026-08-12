@@ -446,6 +446,114 @@ describe('parseEpubFromArrayBuffer', () => {
     ).rejects.toThrow(/Could not find any chapters in this EPUB/);
   });
 
+  it('throws "could not extract readable text" when chapter content is stripped to emptiness (e.g. image-only)', async () => {
+    // Exercise the filter+strip path at extract-epub.ts lines 75-81: after extracting paragraphs from XHTML,
+    // every paragraph gets stripNonTextContent applied; if all are filtered out by length/speakability,
+    // production throws a specific error rather than silently producing an empty article.
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Image Only</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    // Chapter contains only an image — no text content to extract.
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body>
+    <img src="cover.png" alt=""/>
+    <script>alert('hi');</script>
+  </body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    // The extracted paragraphs are empty after stripping; filterReadableParagraphs returns [].
+    await expect(
+      parseEpubFromArrayBuffer(buf, 'https://example.com/image-only.epub', domParserCtor),
+    ).rejects.toThrow(/Could not extract readable text from this EPUB/);
+  });
+
+  it('throws when chapter produces only short non-speakable fragments that get filtered out', async () => {
+    // Same filter path as above but via the speakability gate: content extracted but every fragment
+    // is below MIN_PARAGRAPH_LENGTH or fails isSpeakableText, so the article should be rejected.
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Short Fragments</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    // Tiny fragments — too short to pass the MIN_PARAGRAPH_LENGTH filter.
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body>
+    <p>x</p>
+    <p>y</p>
+    <p>z</p>
+  </body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    // All fragments are too short — filterReadableParagraphs returns [].
+    await expect(
+      parseEpubFromArrayBuffer(buf, 'https://example.com/short.epub', domParserCtor),
+    ).rejects.toThrow(/Could not extract readable text from this EPUB/);
+  });
+
   it('preserves heading markdown formatting in extracted text', async () => {
     const zip = new JSZip();
 
