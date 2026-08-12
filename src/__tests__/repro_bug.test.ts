@@ -130,4 +130,20 @@ describe('extractYoutubeVideoId bug reproduction', () => {
     // \w includes [A-Za-z0-9_]; underscored IDs are valid per the regex.
     expect(extractYoutubeVideoId('https://www.youtube.com/watch?v=abc_defghij')).toBe('abc_defghij');
   });
+
+  it('returns null for youtu.be URL with v query param (path is empty)', () => {
+    // pathname '/' → slice(1) → '' → regex fails; the shortener path reads from
+    // the URL path, not from a query parameter.
+    expect(extractYoutubeVideoId('https://youtu.be/?v=abc12345678')).toBeNull();
+  });
+
+  it('returns null for youtu.be with extra path segment after ID', () => {
+    // The regex requires exactly 11 chars; "abc12345678/extra" fails the length+pattern check.
+    expect(extractYoutubeVideoId('https://youtu.be/abc12345678/foo')).toBeNull();
+  });
+
+  it('returns null for youtu.be with empty path', () => {
+    // pathname '/' → slice(1) → '' → regex fails; no video ID is encoded.
+    expect(extractYoutubeVideoId('https://youtu.be/')).toBeNull();
+  });
 });
