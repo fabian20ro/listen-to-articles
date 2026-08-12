@@ -260,6 +260,46 @@ describe('fetchTtsAudio', () => {
     expect(removeSpy.mock.calls[0][0]).toBe('abort');
   });
 
+  it('removes the caller-signal abort listener on other permanent errors (401)', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 401,
+    } as any);
+
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    const result = await fetchTtsAudio('hello', 'en', config, controller.signal);
+
+    expect(result).toBeNull();
+    // try/finally in attemptFetch always runs cleanup even when throwing.
+    expect(removeSpy).toHaveBeenCalledOnce();
+    expect(removeSpy.mock.calls[0][0]).toBe('abort');
+  });
+
+  it('retries successfully on second attempt after transient failure', async () => {
+    const spy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(
+      (cb: any) => { cb(); return 0; },
+    );
+
+    // First attempt: transient network error
+    // Retry delay fires synchronously via stubbed setTimeout
+    // Second attempt: succeeds — returns blob URL
+    vi.mocked(fetch)
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValue({
+        ok: true,
+        blob: async () => new Blob(['audio']),
+      } as any);
+
+    const result = await fetchTtsAudio('hello', 'en', config);
+
+    expect(result).toBe('blob:url');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    // Verify the retry delay constant is used (stubbed to fire synchronously)
+    expect(spy).toHaveBeenCalledWith(expect.any(Function), 1000);
+  });
+
   it('removes the caller-signal abort listener after each fetch attempt', async () => {
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(
       (cb: any) => { cb(); return 0; },
