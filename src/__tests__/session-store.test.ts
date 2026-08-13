@@ -166,6 +166,26 @@ describe('session-store', () => {
       expect(localStorage.getItem('article-reader-last-article')).toBeNull();
     });
 
+    it('removes articles where an untested string field is invalid before returning null', () => {
+      localStorage.setItem(
+        'article-reader-last-article',
+        JSON.stringify({ article: { ...makeArticle(), content: 42 }, savedAt: 123456789 }),
+      );
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBeNull();
+    });
+
+    it('removes articles where an untested numeric field is a string before returning null', () => {
+      localStorage.setItem(
+        'article-reader-last-article',
+        JSON.stringify({ article: { ...makeArticle(), estimatedMinutes: '3' }, savedAt: 123456789 }),
+      );
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBeNull();
+    });
+
     it('removes articles missing required fields before returning null', () => {
       localStorage.setItem(
         'article-reader-last-article',
