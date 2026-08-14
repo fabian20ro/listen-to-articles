@@ -621,6 +621,32 @@ describe('TTSEngine', () => {
     expect(mockSynth.cancel).toHaveBeenCalled();
   });
 
+  it('ignores stale onEnd callbacks after cancel via generation guard', () => {
+    vi.useFakeTimers({ advanceTime: true });
+
+    const engine = createEngine();
+    // Two sentences — if the generation guard fails, advancing to sentence 1 should trigger a second speak() call.
+    engine.loadArticle(['First long enough sentence text here.', 'Second long enough sentence text here.'], 'en');
+    engine.play();
+
+    expect(mockSynth.speak).toHaveBeenCalledTimes(1);
+    // Capture the generation counter at time of first speak (before cancel)
+    const genAtSpeak = (engine as unknown as Record<string, number>)._speakGen;
+
+    // Cancel — increments _speakGen and sets _stopped=true. The held onEnd will check:
+    //   if (_stopped || gen !== this._speakGen || _isPaused) return;
+    engine.stop();
+    expect((engine as unknown as Record<string, number>)._speakGen).toBeGreaterThan(genAtSpeak);
+
+    // Fire the pending timeout from the mock — onEnd MUST be a no-op due to generation mismatch.
+    vi.advanceTimersByTime(10);
+
+    // Sentence index must remain 0 (no stale advance), and no second speak() call should fire.
+    expect(engine.state.currentSentence).toBe(0);
+    expect(mockSynth.speak).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   it('does not play when no article is loaded', () => {
     const engine = createEngine();
     engine.play();
