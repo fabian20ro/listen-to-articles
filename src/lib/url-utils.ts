@@ -6,8 +6,8 @@
 export function getUrlFromParams(): string | null {
   const params = new URLSearchParams(window.location.search);
 
-  // Share Target sends ?url=...  Some apps put the URL in ?text= or ?title= instead.
-  const candidates = [params.get('url'), params.get('text'), params.get('title'), params.get('link'), params.get('u')];
+  // Share Target sends ?url=...  Some apps put the URL in ?text=, ?title=, or ?targetUrl= instead.
+  const candidates = [params.get('url'), params.get('text'), params.get('title'), params.get('link'), params.get('u'), params.get('targetUrl')];
   for (const raw of candidates) {
     if (!raw) continue;
     const url = extractUrl(raw);

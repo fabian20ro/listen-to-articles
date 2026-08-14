@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createDefaultSettings,
   loadSettings,
+  resetSettings,
   saveSettings,
   type AppSettings,
 } from '../lib/settings-store.js';
@@ -281,5 +282,31 @@ describe('settings-store', () => {
     expect(saved).toEqual(createDefaultSettings(defaults));
 
     restore.mockRestore();
+  });
+
+  describe('resetSettings', () => {
+    it('removes the stored key and returns fresh defaults', () => {
+      localStorage.setItem(
+        'articlevoice-settings',
+        JSON.stringify({ rate: 2, lang: 'en' }),
+      );
+
+      const settings = resetSettings(defaults);
+
+      expect(localStorage.getItem('articlevoice-settings')).toBeNull();
+      expect(settings).toEqual(createDefaultSettings(defaults));
+    });
+
+    it('returns defaults even when removeItem throws', () => {
+      vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+        throw new Error('storage unavailable');
+      });
+
+      const settings = resetSettings(defaults);
+
+      expect(settings).toEqual(createDefaultSettings(defaults));
+
+      vi.restoreAllMocks();
+    });
   });
 });
