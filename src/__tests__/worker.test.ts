@@ -341,4 +341,70 @@ describe('worker youtube parse', () => {
     const body = await response.json();
     expect(body.error).toMatch(/EPUB too large/);
   });
+
+  it('CORS preflight returns 204 with allowed origin headers', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+
+    const response = await worker.fetch(
+      new Request('https://worker.example/', { method: 'OPTIONS' }),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(env.ALLOWED_ORIGIN);
+    expect(response.headers.get('Access-Control-Allow-Methods')).toContain('POST');
+  });
+
+  it('rejects translate with empty text', async () => {
+    const response = await worker.fetch(
+      new Request('https://worker.example/?action=translate&text=&to=en'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toMatch(/Invalid text/);
+  });
+
+  it('rejects translate with text exceeding the character limit', async () => {
+    const longText = 'a'.repeat(5001);
+    const response = await worker.fetch(
+      new Request(`https://worker.example/?action=translate&text=${encodeURIComponent(longText)}&to=en`),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toMatch(/Invalid text/);
+  });
+
+  it('rejects translate with an invalid destination language code', async () => {
+    const response = await worker.fetch(
+      new Request('https://worker.example/?action=translate&text=hello&to=INVALID'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toMatch(/Invalid lang/);
+  });
+
+  it('parses article via /parse GET with url search parameter', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html><body>Test article content.</body></html>', { headers: { 'content-type': 'text/html' } })));
+
+    const response = await worker.fetch(
+      new Request('https://worker.example/parse?url=https://example.com/article&format=article'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(200);
+    const article = await response.json();
+    expect(typeof article.markdown).toBe('string');
+    expect(article.resolvedUrl).toBeDefined();
+  });
 });
