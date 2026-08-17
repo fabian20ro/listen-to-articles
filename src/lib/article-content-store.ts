@@ -98,8 +98,7 @@ export async function saveArticleContent(content: StoredArticleContent): Promise
   try {
     // Reject malformed records at write time — partial writes must not corrupt the store.
     if (!validateStoredArticle(content)) {
-      log.warn('Refused to save malformed article content (validation failed)');
-      return;
+      throw new Error('Refused to save malformed article content (validation failed)');
     }
 
     const db = await openDB();
