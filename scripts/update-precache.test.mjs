@@ -371,4 +371,64 @@ describe('update-precache', () => {
     expect(rewritten).toContain(STABLE_ICON_PATH);
     expect(rewritten).not.toContain('./assets/old-icon.png');
   });
+
+  it('returns input unchanged when rewriteIndexHtmlForStableAssets finds no matching links', () => {
+    const html = '<head><title>No PWA links here</title></head>';
+    const rewritten = rewriteIndexHtmlForStableAssets(html);
+    expect(rewritten).toBe(html);
+
+    // And an empty string stays empty.
+    expect(rewriteIndexHtmlForStableAssets('')).toBe('');
+  });
+
+  it('replaces all three PWA link types in a single html pass', () => {
+    const html = `<html>
+<head>
+<link rel="manifest" href="./assets/manifest-xyz.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-abc.png">
+<link rel="apple-touch-icon" href="./assets/apple-old.png">
+</head></html>`;
+
+    const rewritten = rewriteIndexHtmlForStableAssets(html);
+
+    expect(rewritten).toContain(`href="${STABLE_MANIFEST_PATH}"`);
+    expect(rewritten).not.toContain('./assets/manifest-xyz.json');
+    expect(rewritten).toContain(`href="${STABLE_ICON_PATH}"`);
+    expect(rewritten).not.toContain('./assets/icon-abc.png');
+    // apple-touch-icon rewritten to the same stable icon path
+    expect(rewritten).toMatch(/apple-touch-icon.*href="\.\/icons\/icon-192\.png"/);
+    expect(rewritten).not.toContain('./assets/apple-old.png');
+  });
+
+  it('replaces icons wholesale in renderStableManifest — old refs gone from parsed manifest', () => {
+    const source = JSON.stringify({
+      name: 'Pixel Reader',
+      short_name: 'PR',
+      start_url: '/reader/',
+      display: 'standalone',
+      theme_color: '#fff',
+      background_color: '#fafafa',
+      icons: [
+        { src: './icons/legacy-256.png', sizes: '256x256' },
+        { src: './icons/safari-pinned.svg', sizes: 'any', type: 'image/svg+xml' },
+      ],
+    });
+
+    const manifest = renderStableManifest(source);
+    const parsed = JSON.parse(manifest);
+
+    // Icons are replaced entirely — exactly 2, the stable ones.
+    expect(parsed.icons).toHaveLength(2);
+    expect(parsed.icons[0]).toEqual({ src: './icons/icon-192.png', sizes: '192x192', type: 'image/png' });
+    expect(parsed.icons[1]).toEqual({ src: './icons/icon-512.png', sizes: '512x512', type: 'image/png' });
+
+    // Old icon references are gone from the parsed result.
+    const raw = renderStableManifest(source);
+    expect(raw).not.toContain('./icons/legacy-256.png');
+    expect(raw).not.toContain('./icons/safari-pinned.svg');
+
+    // Unrelated metadata is preserved verbatim.
+    expect(parsed.short_name).toBe('PR');
+    expect(parsed.start_url).toBe('/reader/');
+  });
 });
