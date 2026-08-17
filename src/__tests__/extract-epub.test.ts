@@ -202,6 +202,120 @@ describe('parseEpubFromArrayBuffer', () => {
     expect(article.title).toBe('my-book');
   });
 
+  it('invokes onProgress with expected messages during single-chapter processing (no per-chapter progress)', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Progress Book</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>A paragraph long enough to pass the extraction filter during progress testing.</p></body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    const messages: string[] = [];
+    await parseEpubFromArrayBuffer(buf, 'https://example.com/progress.epub', domParserCtor, (msg) => messages.push(msg));
+
+    // Initial loading message always fires; per-chapter loop only runs for >5 chapters.
+    expect(messages[0]).toBe('Loading EPUB...');
+    const hasProcessingMsg = messages.some(m => /^Processing \d+ chapters/.test(m));
+    expect(hasProcessingMsg).toBe(true);
+    // Single chapter: no "Processing chapter N" messages (loop body requires >5 chapters).
+    expect(messages.filter(m => /^Processing chapter/.test(m)).length).toBe(0);
+  });
+
+  it('invokes onProgress per-chapter when EPUB has more than 5 chapters', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    // Build 7 chapters to exercise the i%3===0 progress reporting path.
+    const items = Array.from({ length: 7 }, (_, i) => `<item id="ch${i + 1}" href="chapter${i + 1}.xhtml" media-type="application/xhtml+xml"/>`).join('\n');
+    const itemrefs = Array.from({ length: 7 }, (_, i) => `<itemref idref="ch${i + 1}"/>`).join('\n');
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Multi Book</dc:title></metadata>
+  <manifest>
+${items}
+  </manifest>
+  <spine>
+${itemrefs}
+  </spine>
+</package>`
+    );
+
+    for (let i = 1; i <= 7; i++) {
+      zip.file(
+        `chapter${i}.xhtml`,
+        `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>Chapter ${i} content that is long enough to pass the extraction filter and survive speakability checks here.</p></body>
+</html>`
+      );
+    }
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    const messages: string[] = [];
+    await parseEpubFromArrayBuffer(buf, 'https://example.com/multi.epub', domParserCtor, (msg) => messages.push(msg));
+
+    expect(messages[0]).toBe('Loading EPUB...');
+    // Second message is the "Processing N chapters..." summary.
+    const processingMsg = messages.find(m => /^Processing \d+ chapters/.test(m));
+    expect(processingMsg).toMatch(/Processing 7 chapters/);
+    // Per-chapter progress fires at i=0 (chapter 1), i=3 (chapter 4), i=6 (chapter 7):
+    const chapterMessages = messages.filter(m => /^Processing chapter/.test(m));
+    expect(chapterMessages.length).toBe(3);
+    expect(chapterMessages[0]).toBe('Processing chapter 1 of 7...');
+    expect(chapterMessages[1]).toBe('Processing chapter 4 of 7...');
+    expect(chapterMessages[2]).toBe('Processing chapter 7 of 7...');
+  });
+
   it('skips manifest entries with unsupported media types (e.g. images)', async () => {
     const zip = new JSZip();
 
