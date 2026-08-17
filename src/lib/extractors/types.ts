@@ -62,6 +62,18 @@ if (WORDS_PER_MINUTE < 100 || WORDS_PER_MINUTE > 300) {
   throw new Error(`Invalid WORDS_PER_MINUTE: ${WORDS_PER_MINUTE}. Expected [100, 300].`);
 }
 
+/** Throw if a byte size exceeds MAX_ARTICLE_SIZE or is non-positive. */
+export function assertArticleSize(bytes: number): void {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    throw new RangeError(`Non-positive article size: ${bytes}.`);
+  }
+  if (bytes > MAX_ARTICLE_SIZE) {
+    throw new RangeError(
+      `Article exceeds MAX_ARTICLE_SIZE (${MAX_ARTICLE_SIZE} bytes): got ${bytes}.`,
+    );
+  }
+}
+
 /** Shared image-stripping regex patterns for markdown content. */
 export const IMAGE_MD_RE = /!\[[^\]]*\]\([^()]*(?:\([^)]*\)[^()]*)*\)/g;
 export const IMAGE_HTML_RE = /<img[^>]*\/?>/gi;
