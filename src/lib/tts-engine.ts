@@ -433,6 +433,10 @@ export class TTSEngine {
     this.emitState();
   }
 
+  getRate(): number {
+    return this.rate;
+  }
+
   setRate(rate: number): void {
     this.rate = Math.max(0.5, Math.min(3.0, rate));
     this.audioBackend?.setRate(this.rate);
