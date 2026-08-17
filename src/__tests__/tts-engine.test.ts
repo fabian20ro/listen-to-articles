@@ -789,6 +789,12 @@ describe('TTSEngine', () => {
     expect(engine.state.currentParagraph).toBe(0);
   });
 
+  it('setVoice() selects voice by exact name, ignores non-matching names', () => {
+    const engine = createEngine();
+    engine.setVoice('Nonexistent Voice');
+    expect((engine as unknown as Record<string, SpeechSynthesisVoice | null>).voice).toBeNull();
+  });
+
   it('fires onEnd callback when article finishes', async () => {
     const onEnd = vi.fn();
     const engine = createEngine({ onEnd });
