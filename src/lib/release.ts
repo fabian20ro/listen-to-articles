@@ -8,6 +8,6 @@ export const APP_RELEASE = '__APP_RELEASE__';
  * real identifiers pass through unchanged.
  */
 export function shortRelease(release: string): string {
-  if (!release || release === '__APP_RELEASE__') return 'dev';
+  if (!release || !release.trim() || release === '__APP_RELEASE__') return 'dev';
   return release;
 }
