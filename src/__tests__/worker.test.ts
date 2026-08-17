@@ -342,6 +342,30 @@ describe('worker youtube parse', () => {
     expect(body.error).toMatch(/EPUB too large/);
   });
 
+  it('proxy route returns HTML with content-type text/html as-is', async () => {
+    const htmlContent = '<html><body><p>Proxyed article body.</p></body></html>';
+
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      return new Response(htmlContent, {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const response = await worker.fetch(
+      new Request('https://worker.example/?url=https://example.com/article.html'),
+      env,
+      ctx,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const body = await response.text();
+    expect(body).toBe(htmlContent);
+    expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
+  });
+
   it('CORS preflight returns 204 with allowed origin headers', async () => {
     vi.stubGlobal('fetch', vi.fn());
 
