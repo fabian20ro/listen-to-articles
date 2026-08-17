@@ -50,6 +50,11 @@ describe('utils.ts', () => {
     it('strips image URLs', () => {
       expect(stripNonTextContent('Text with https://example.com/image.png')).toBe('Text with');
     });
+
+    it('strips long non-image URLs (80+ chars)', () => {
+      const longUrl = 'https://example.com/' + 'a'.repeat(80);
+      expect(stripNonTextContent('see ' + longUrl)).toBe('see');
+    });
   });
 
   describe('stripMarkdownSyntax', () => {
