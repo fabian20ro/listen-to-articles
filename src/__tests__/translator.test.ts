@@ -108,6 +108,19 @@ describe('buildBatches', () => {
     const result = buildBatches([big, big, big]);
     expect(result.length).toBe(3);
   });
+
+  it('includes empty strings in the current batch as separators', () => {
+    const result = buildBatches(['hello', '', 'world']);
+    // '' satisfies fit condition; current += '\n\n' + '' → trailing separator
+    expect(result).toEqual(['hello\n\n\n\nworld']);
+  });
+
+  it('drops a trailing empty-only current batch at end of input', () => {
+    const result = buildBatches(['short']);
+    // 'short' alone fits; no trailing behavior change vs baseline
+    expect(result.length).toBe(1);
+    expect(result[0]).toBe('short');
+  });
 });
 
 // ── translateParagraphs ────────────────────────────────────────────
