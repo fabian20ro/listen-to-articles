@@ -154,6 +154,53 @@ describe('parseEpubFromArrayBuffer', () => {
     expect(article.textContent).toContain('second paragraph');
   });
 
+  it('sets resolvedUrl on success to the source URL', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Url Book</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>A paragraph long enough to pass the extraction filter for resolved URL test.</p></body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    const sourceUrl = 'https://example.com/folder/url-book.epub';
+    const article = await parseEpubFromArrayBuffer(buf, sourceUrl, domParserCtor);
+
+    expect(article.resolvedUrl).toBe(sourceUrl);
+  });
+
   it('uses URL-derived fallback title when OPF has no <title>', async () => {
     const zip = new JSZip();
 

@@ -16,7 +16,8 @@ export const LANG_TTS_CODES: Record<Language, string> = {
 
 /** Shorter code for translation/audio APIs (no region subtag). */
 export function langToCode(lang: Language): string {
-  return lang === 'ro' ? 'ro' : 'en';
+  const ttsCode = LANG_TTS_CODES[lang];
+  return ttsCode ? ttsCode.split('-')[0] : 'en';
 }
 
 export function isLanguage(v: unknown): v is Language {
