@@ -232,4 +232,24 @@ describe('MediaSessionController', () => {
     expect(controller.active).toBe(false);
     expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
   });
+
+  it('should not call revokeObjectURL on dispose when silentUrl is null (never activated)', () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    controller.dispose();
+
+    expect(revokeSpy).not.toHaveBeenCalled();
+  });
+
+  it('should safely call deactivate when not active — no throw on null audio + null timer', () => {
+    // activate() was never called: _active=false, keepAliveTimer=null, audio=null.
+    // deactivate must skip pause/remove branches without throwing.
+    expect(() => controller.deactivate()).not.toThrow();
+    expect(controller.active).toBe(false);
+  });
+
+  it('should be idempotent — double dispose does not throw', () => {
+    controller.dispose();
+    expect(() => controller.dispose()).not.toThrow();
+  });
 });
