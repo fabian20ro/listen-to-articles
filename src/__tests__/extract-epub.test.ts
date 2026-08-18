@@ -751,6 +751,10 @@ ${itemrefs}
     <p>A paragraph long enough to pass the extraction filter and survive the speakable-text check.</p>
     <h3>Subsection Header</h3>
     <p>Another paragraph that is sufficiently long and speakable for test validation purposes here.</p>
+    <h5>Minor Section</h5>
+    <p>A fifth-level heading paragraph that tests the capping behavior at extract-epub.ts line 228.</p>
+    <h6>Tertiary Section</h6>
+    <p>A sixth-level heading paragraph also subject to the heading level cap at four hashes.</p>
   </body>
 </html>`
     );
@@ -766,6 +770,11 @@ ${itemrefs}
     // Headings are formatted with ## or ### prefix per extractTextFromXhtml.
     expect(article.textContent).toContain('## Chapter Title');
     expect(article.textContent).toContain('### Subsection Header');
+    // h5 and h6 are capped to #### (level 4) by extractTextFromXhtml line 228.
+    expect(article.textContent).toContain('#### Minor Section');
+    expect(article.textContent).toContain('#### Tertiary Section');
+    expect(article.textContent).not.toContain('##### ');
+    expect(article.textContent).not.toContain('###### ');
     expect(article.textContent).toContain('long enough to pass');
   });
 });

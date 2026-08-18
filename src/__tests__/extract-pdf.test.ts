@@ -394,6 +394,21 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.title).toBe('document-name'); // filename without extension used as title
   });
 
+  it('should call onProgress with expected messages during multi-page parsing', async () => {
+    setupMockPdf(2, {}, (pageNum: number) => [
+      { str: `Page ${pageNum} full paragraph of content for verification.`, transform: [1, 0, 0, 1, 0, 700], height: 12 }
+    ]);
+
+    const progressCalls: string[] = [];
+    const buffer = new ArrayBuffer(1024);
+    await parsePdfFromArrayBuffer(buffer, 'progress.pdf', (msg) => progressCalls.push(msg));
+
+    expect(progressCalls[0]).toBe('Loading PDF...');
+    expect(progressCalls[1]).toBe('Parsing page 1/2...');
+    expect(progressCalls[2]).toBe('Parsing page 2/2...');
+    expect(progressCalls).toHaveLength(3);
+  });
+
   it('should decode UTF-16 BE Uint8Array-encoded metadata in pdf.info (regression: encoded title/author silently lost)', async () => {
     function encodeUtf16Be(s: string): Uint8Array {
       const bytes = new Uint8Array(2 + s.length * 2); // BOM + chars

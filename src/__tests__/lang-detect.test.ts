@@ -151,10 +151,16 @@ describe('detectLanguage', () => {
     expect(detectLanguage(text)).toBe('ro');
   });
 
-  it('does not falsely detect English when only new stop words are present without other signals', () => {
-    // A single common word should still need another signal to trigger ro detection.
-    const text = 'Aceasta este o întrebare despre tehnologie.';
-    expect(detectLanguage(text)).toBe('ro'); // 2 words: aceasta + despre (existing)
+  it('does not falsely detect Romanian when only new stop words are present without other signals', () => {
+    // Single 'aceasta' (new word), zero diacritics, no other Romanian keywords → en.
+    const text = 'Am văzut această carte pe masă.';
+    expect(detectLanguage(text)).toBe('en');
+  });
+
+  it("does not falsely detect Romanian when only 'cum' is present", () => {
+    // Single 'cum', zero diacritics, no other Romanian keywords → en.
+    const text = 'Cum să facem asta? Va fi o zi frumoasă.';
+    expect(detectLanguage(text)).toBe('en');
   });
 
   it('detects Romanian via new stop word "trebuie" + diacritic', () => {
