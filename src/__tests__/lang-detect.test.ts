@@ -85,6 +85,21 @@ describe('detectLanguage', () => {
     expect(detectLanguage(text)).toBe('ro');
   });
 
+  it('returns English when exactly 2 Romanian common words appear with no diacritics (threshold is >2)', () => {
+    // Production: roCharCount > 3 || roWordCount > 2 → 'ro'; otherwise 'en'.
+    // Exactly two Romanian stop words without any diacritic hits must stay English.
+    // 'care' and 'sunt' are in RO_WORDS with no Romanian diacritics (ăâîșț).
+    const text = 'This is about care sunt for testing detection only.';
+    expect(detectLanguage(text)).toBe('en');
+  });
+
+  it('detects Romanian when exactly 3 Romanian common words appear with no diacritics (threshold >2)', () => {
+    // Three Romanian stop words crosses the >2 word threshold into Romanian.
+    // 'care', 'sunt', 'este' all in RO_WORDS, zero diacritics → roWordCount=3 → 'ro'.
+    const text = 'This is about care sunt este for testing detection.';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
   // ── Mixed HTML/content input shape (realistic extraction artifact) ─
 
   it('handles English text with embedded Romanian diacritics in tags', () => {
