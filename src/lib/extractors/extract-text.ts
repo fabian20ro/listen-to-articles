@@ -79,6 +79,9 @@ export async function createArticleFromTextFile(file: File): Promise<Article> {
 
   const title = String(file.name).replace(/\.(txt|text)$/i, '') || 'Text Document';
   const wordCount = countWords(textContent);
+  if (wordCount < 3) {
+    throw new Error('Pasted text is too short to read as an article.');
+  }
   const estimatedMinutes = Math.max(1, Math.round(wordCount / WORDS_PER_MINUTE));
   const lang = detectLanguage(textContent);
 
