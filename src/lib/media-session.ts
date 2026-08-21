@@ -127,7 +127,7 @@ export class MediaSessionController {
     Promise.resolve(this.audio.play()).catch((err) => {
       log.warn('Silent audio play failed on activate', err);
     });
-    this.updateMetadata(title);
+    this.updateMetadata(title, title);
     this.setPlaybackState('playing');
     this.startKeepAlive();
   }
