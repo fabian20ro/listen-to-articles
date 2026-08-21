@@ -44,6 +44,7 @@ export function buildChaptersList(options: ChapterRendererOptions): void {
 
   headings.forEach((heading) => {
     const level = parseInt(heading.tagName.charAt(1), 10);
+    if (Number.isNaN(level) || level < 1 || level > 6) return; // malformed heading tag — skip to avoid "NaN" dataset leakage into filtered list
     const text = heading.textContent?.trim() ?? '';
     if (!text) return;
 
