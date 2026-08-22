@@ -346,6 +346,50 @@ describe('PwaUpdateManager', () => {
     expect(onUpdateApplied).toHaveBeenCalledTimes(1);
   });
 
+  it('applyDeferredReloadIfIdle returns no-change when nothing pending', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onStatus = vi.fn();
+    const onUpdateApplied = vi.fn();
+    const reloadSpy = vi.fn();
+
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => false,
+      onStatus,
+      onUpdateApplied,
+      reload: reloadSpy,
+    });
+
+    await manager.init('sw.js');
+
+    const result = manager.applyDeferredReloadIfIdle();
+
+    expect(result).toBe('no-change');
+    expect(manager.hasPendingReload()).toBe(false);
+    expect(onStatus).not.toHaveBeenCalled();
+    expect(onUpdateApplied).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('non-silent checkForUpdates failure invokes onStatus with error message', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onStatus = vi.fn();
+
+    sw.update.mockRejectedValue(new Error('network'));
+
+    const manager = new PwaUpdateManager({ onStatus });
+    await manager.init('sw.js');
+
+    // clear init's silent checkForUpdates side effects (none expected)
+    onStatus.mockClear();
+
+    const result = await manager.checkForUpdates({ silent: false });
+
+    expect(result).toBe('failed');
+    expect(onStatus).toHaveBeenCalledWith('Update check failed. Try again.');
+  });
+
   it('visibilitychange does nothing when not visible', async () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
