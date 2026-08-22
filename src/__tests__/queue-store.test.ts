@@ -550,6 +550,19 @@ describe('queue-store', () => {
       // Old 'a' is gone; 'b' and 'c' keep their relative positions
       expect(result.map((i) => i.id)).toEqual(['b', 'c', 'a-new']);
     });
+
+    it('keeps all zero-URL items (no dedup guard fires for empty URLs)', () => {
+      // dedupeQueueItems skips empty-string URLs from its seen set —
+      // every blank-URL item survives. Documented invariant: without a URL there
+      // is no reliable dedup key, so we keep them all rather than silently drop.
+      const a = makeItem({ id: 'no-url-1', url: '' });
+      const b = makeItem({ id: 'no-url-2', url: '' });
+
+      const result = addToQueue([a], b);
+
+      expect(result).toHaveLength(2);
+      expect(result.map((i) => i.id)).toEqual(['no-url-1', 'no-url-2']);
+    });
   });
 
   describe('loadQueue invalid items', () => {
