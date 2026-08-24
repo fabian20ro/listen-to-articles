@@ -84,17 +84,20 @@ describe('parseEpubFromArrayBuffer', () => {
     ).rejects.toThrow(/zip/i);
   });
 
-  it('derives title from URL pathname (does not throw "Invalid URL")', async () => {
-    // Use a buffer that will fail at parseEpubCore but verify the fallback path works
+  it('does not escape "Invalid URL" from title-fallback derivation (valid or invalid source URL; junk buffer rejects at zip stage)', async () => {
+    // parseEpubFromArrayBuffer derives a title fallback from sourceUrl inside
+    // try/catch, so URL parsing can never leak a TypeError. A junk buffer must
+    // reject at the zip stage for both a valid and an invalid sourceUrl.
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
     const buf = new Uint8Array(10).buffer;
-    try {
-      await parseEpubFromArrayBuffer(buf, 'https://example.com/my-book.epub', class {
-        parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
-      });
-    } catch (err: any) {
-      // Expected to fail at some point — just ensure it doesn't throw about invalid URL
-      expect(err.message).not.toContain('Invalid URL');
-    }
+    await expect(
+      parseEpubFromArrayBuffer(buf, 'https://example.com/my-book.epub', domParserCtor),
+    ).rejects.toThrow(/zip/i);
+    await expect(
+      parseEpubFromArrayBuffer(buf, 'not a url', domParserCtor),
+    ).rejects.toThrow(/zip/i);
   });
 
   it('extracts text from a minimal valid EPUB', async () => {
