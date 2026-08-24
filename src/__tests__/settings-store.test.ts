@@ -274,12 +274,14 @@ describe('settings-store', () => {
   });
 
   it('returns fallback defaults when saveSettings throws during load', () => {
+    localStorage.setItem('articlevoice-settings', '{not-valid-json');
     const restore = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       throw new Error('storage full');
     });
 
     const saved = loadSettings(defaults);
     expect(saved).toEqual(createDefaultSettings(defaults));
+    expect(localStorage.getItem('articlevoice-settings')).toBe('{not-valid-json');
 
     restore.mockRestore();
   });

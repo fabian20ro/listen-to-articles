@@ -63,6 +63,10 @@ export function extractYoutubeVideoId(url: string): string | null {
       const id = parsed.pathname.slice(1).replace(/\/$/, '');
       return /^[\w-]{11}$/.test(id) ? id : null;
     }
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname !== 'youtube.com' && !hostname.endsWith('.youtube.com')) {
+      return null;
+    }
     if (
       parsed.pathname.startsWith('/watch')
       || parsed.pathname.startsWith('/embed/')
