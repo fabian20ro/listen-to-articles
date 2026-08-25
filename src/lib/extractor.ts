@@ -24,7 +24,7 @@ export {
 export { extractArticleFromYoutube, extractYoutubeVideoId } from './extractors/extract-youtube.js';
 
 // HTML parsing
-export { sanitizeRenderedHtml } from './extractors/extract-html.js';
+export { parseArticleFromHtml, sanitizeRenderedHtml } from './extractors/extract-html.js';
 
 // PDF
 export {
