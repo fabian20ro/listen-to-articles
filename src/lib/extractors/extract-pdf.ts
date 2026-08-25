@@ -87,7 +87,9 @@ export async function createArticleFromPdf(
 function extractDocumentMetadata(pdf: any): { title?: string; author?: string } {
   try {
     // pdfjs v1.x exposes .info.Title/.Author as strings.
-    const info = pdf.info || {};
+    // Some builds omit the info dict entirely; create it so decoded
+    // metadata values are not written to a detached object and lost.
+    const info = pdf.info ?? (pdf.info = {});
     let metadataJson: Record<string, unknown> | undefined;
     if (pdf.metadata?.toJSON) {
       try {

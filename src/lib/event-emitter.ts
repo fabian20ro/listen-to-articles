@@ -14,10 +14,10 @@
 type Handler<T> = T extends void ? () => void : (data: T) => void;
 
 /** AggregateError-compatible error that bundles multiple handler failures into one. */
-class AggregatedHandlerErrors extends Error {
+export class AggregatedHandlerErrors extends Error {
   public readonly errors: unknown[];
   constructor(errors: unknown[], message?: string) {
-    super(message);
+    super(message ?? `Multiple event handlers failed (${errors.length})`);
     this.name = 'AggregatedHandlerErrors';
     this.errors = errors;
   }
