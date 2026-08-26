@@ -53,7 +53,7 @@ export class ListFilter {
     this.list = opts.list;
     this.getText = opts.getText ?? ((el) => el.textContent ?? '');
     this.debounceMs = opts.inputDebounceMs ?? 150;
-    this.noResultsMsg = (opts.noResultsMessage !== undefined && opts.noResultsMessage !== null && opts.noResultsMessage !== '') ? opts.noResultsMessage : null;
+    this.noResultsMsg = (opts.noResultsMessage === null || opts.noResultsMessage === '') ? null : (opts.noResultsMessage ?? 'No results found');
 
     this.input = document.createElement('input');
     this.input.type = 'search';
@@ -148,7 +148,7 @@ export class ListFilter {
       }
     }
 
-    if (this.noResultsMsg !== null && matchCount === 0) {
+    if (this.noResultsMsg !== null && query && matchCount === 0) {
       this.showMessage(this.noResultsMsg);
     } else {
       this.removeMessage();
