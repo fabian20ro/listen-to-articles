@@ -50,12 +50,24 @@ export function detectLanguage(text: string): Language {
 // ── HTML lang attribute detection ────────────────────────────────────
 
 /**
+ * BCP 47 special registrations that carry no language information
+ * ("und" = undetermined, "mis" = miscellaneous, "zxx" = no content).
+ * Real pages emit lang="und" for machine-generated or mixed content;
+ * treating them as a known language would force translation decisions
+ * before cheaper signals (URL TLD, text) get a chance.
+ */
+const NO_LANG_CODES = new Set(['und', 'mis', 'zxx']);
+
+/**
  * Normalize an HTML lang attribute value to a base language code.
  * e.g. "de-DE" → "de", "en-US" → "en", "" → ""
+ * BCP 47 no-language codes ("und", "mis", "zxx") normalize to "" so
+ * callers fall through to the next signal instead of forcing a decision.
  */
 export function detectLangFromHtml(htmlLang: string): string {
   if (!htmlLang) return '';
-  return htmlLang.trim().split(/[-_]/)[0].toLowerCase();
+  const code = htmlLang.trim().split(/[-_]/)[0].toLowerCase();
+  return NO_LANG_CODES.has(code) ? '' : code;
 }
 
 // ── URL TLD → language mapping ───────────────────────────────────────
