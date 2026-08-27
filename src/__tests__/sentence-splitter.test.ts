@@ -37,21 +37,13 @@ describe('sentence-splitter', () => {
     });
 
     it('should start a new segment when merge would exceed MAX_UTTERANCE_LENGTH mid-chain', () => {
-      // First two are short and merge to ~70 chars (under 200). Third cannot fit with the merged chunk.
-      const s1 = 'A'.repeat(15) + '.';     // 16 chars
-      const s2 = 'B'.repeat(15) + '.';     // 16 chars — merges with s1 to ~33 (still under MIN=40, so merge continues)
-      // Make both short enough to merge but merged length pushes third over MAX.
-      const a = 'A'.repeat(19) + '.';      // 20 chars (< 40)
-      const b = 'B'.repeat(19) + '.';      // 20 chars (< 40), merged with a → 41 (>= MIN, so merge stops for a+b pair but they're already concatenated)
-      // Simpler: two short sentences that merge to ~35, third is too long.
-      const x = 'x'.repeat(18) + '.';       // 19 chars
-      const y = 'y'.repeat(18) + '.';       // 19 chars — merges with x → 39 (still < MIN=40, merge continues)
-      // Build chain: a+b merge to ~39. Then z is long enough that combined exceeds MAX.
-      const z = 'Z'.repeat(60);             // well over MAX_UTTERANCE_LENGTH - 39
-      const input = [x, y, ...'Z'.repeat(200) + '.'];
-      const result = mergeShortSentences(input);
-      // First two should be merged; third (the long Z string) should start fresh.
-      expect(result.length).toBeGreaterThanOrEqual(3);
+      // x + y merge (39 chars total, still < MIN_SENTENCE_LENGTH). z is long enough
+      // that the merged chunk + z would be 201 chars > MAX_UTTERANCE_LENGTH (200),
+      // so z must start a fresh segment.
+      const x = 'x'.repeat(18) + '.';     // 19 chars
+      const y = 'y'.repeat(18) + '.';     // 19 chars — merged with x → 39
+      const z = 'Z'.repeat(160) + '.';    // 161 chars — 39 + 1 + 161 = 201 > 200
+      expect(mergeShortSentences([x, y, z])).toEqual([`${x} ${y}`, z]);
     });
 
     it('should handle empty input array', () => {
