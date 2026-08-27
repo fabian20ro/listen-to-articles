@@ -214,15 +214,24 @@ function extractTextFromXhtml(
   // Remove non-content elements
   doc.querySelectorAll('script, style, nav, head, meta, link').forEach((el) => el.remove());
 
+  const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, div';
   const paragraphs: string[] = [];
 
   // Extract text from block-level elements
-  const blocks = doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote, div');
+  const blocks = doc.querySelectorAll(BLOCK_SELECTOR);
   if (blocks.length > 0) {
     blocks.forEach((block) => {
-      const text = block.textContent?.trim();
-      if (!text || text.length === 0) return;
       const tag = block.tagName.toLowerCase();
+      // A block containing nested blocks gets its children extracted separately;
+      // take only direct text nodes so nested content is not duplicated.
+      const text = block.querySelector(BLOCK_SELECTOR)
+        ? Array.from(block.childNodes)
+            .filter((n) => n.nodeType === Node.TEXT_NODE)
+            .map((n) => n.textContent ?? '')
+            .join('')
+            .trim()
+        : block.textContent?.trim();
+      if (!text || text.length === 0) return;
       if (/^h[1-6]$/.test(tag)) {
         const level = parseInt(tag[1], 10);
         const hashes = '#'.repeat(Math.min(Math.max(level, 2), 4));

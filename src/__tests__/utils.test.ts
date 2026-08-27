@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  isSpeakableText, 
+import {
+  buildArticleFromParagraphs,
+  isSpeakableText,
   stripNonTextContent, 
   stripMarkdownSyntax, 
   filterReadableParagraphs, 

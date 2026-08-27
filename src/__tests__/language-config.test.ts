@@ -37,6 +37,12 @@ describe('DEFAULT_LANGUAGE', () => {
   it('is a valid supported language', () => {
     expect(isLanguage(DEFAULT_LANGUAGE)).toBe(true);
   });
+
+  // Pin the concrete default: new sessions must start in English even if
+  // SUPPORTED_LANGUAGES is reordered (the mirror test above cannot catch that).
+  it('defaults to English', () => {
+    expect(DEFAULT_LANGUAGE).toBe('en');
+  });
 });
 
 // ── LANG_TTS_CODES ──────────────────────────────────────────────────
