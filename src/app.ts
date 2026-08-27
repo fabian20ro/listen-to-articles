@@ -367,6 +367,8 @@ async function main(): Promise<void> {
   refs.speedValue.textContent = settings.rate + 'x';
   refs.settingsSpeed.addEventListener('input', () => {
     const rate = parseFloat(refs.settingsSpeed.value);
+    if (Number.isNaN(rate)) return;
+    refs.settingsSpeed.value = String(rate);
     refs.speedValue.textContent = rate + 'x';
     tts.setRate(rate);
     settings.rate = rate;
