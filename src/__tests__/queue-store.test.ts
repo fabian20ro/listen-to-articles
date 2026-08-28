@@ -405,6 +405,18 @@ describe('queue-store', () => {
       expect(loaded[1].id).toBe('a');
       expect(loaded[2].id).toBe('b');
     });
+
+    it('deduplicates by URL keeping the most recent entry when reordering', () => {
+      const a = makeItem({ id: 'a', url: 'https://example.com/x' });
+      const b = makeItem({ id: 'b', url: 'https://example.com/y' });
+      const aNew = makeItem({ id: 'a-new', url: 'https://example.com/x', title: 'Re-added' });
+
+      const result = reorderQueue([a, b, aNew]);
+
+      expect(result.map((i) => i.id)).toEqual(['b', 'a-new']);
+      const persisted = JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]') as QueueItem[];
+      expect(persisted.map((i) => i.id)).toEqual(['b', 'a-new']);
+    });
   });
 
   describe('addToQueue failure resilience', () => {

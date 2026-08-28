@@ -189,6 +189,8 @@ export class QueueController {
     const nextIndex = this.currentIndex + 1;
     const item = this.items[nextIndex];
 
+    this.currentIndex = nextIndex;
+    this.notify();
     this._isLoadingItem = true;
     try {
       if (item.url && isValidArticleUrl(item.url)) {
@@ -196,8 +198,6 @@ export class QueueController {
       } else {
         await this.loadFromStoredContent(item);
       }
-      this.currentIndex = nextIndex;
-      this.notify();
       this.tts.play();
     } catch {
       const msg = `Failed to load: ${item.title}`;
