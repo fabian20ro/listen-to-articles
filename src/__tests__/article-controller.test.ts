@@ -612,15 +612,19 @@ describe('ArticleController', () => {
       resolvedUrl: 'https://example.com/2',
     } as any;
 
-    vi.mocked(createArticleFromPdf).mockImplementationOnce(() => new Promise((resolve) => {
-      setTimeout(() => resolve(article1), 50);
-    }) as any);
+    vi.useFakeTimers();
+    // Start first upload (holds its resolve so ordering is explicit, no wall clock).
+    let resolveFirst: ((v: any) => void) | null = null;
+    vi.mocked(createArticleFromPdf).mockImplementationOnce(
+      () => new Promise((resolve) => { (resolveFirst as any) = resolve; }) as any,
+    );
     vi.mocked(createArticleFromPdf).mockResolvedValueOnce(article2);
 
     const refs = makeRefs();
+    const tts = { stop: vi.fn(), loadArticle: vi.fn(), setLang: vi.fn() } as any;
     const controller = new ArticleController({
       refs,
-      tts: { stop: vi.fn(), loadArticle: vi.fn(), setLang: vi.fn() } as any,
+      tts,
       proxyBase: 'https://proxy.example.workers.dev',
       initialLangOverride: 'auto',
     });
@@ -628,15 +632,26 @@ describe('ArticleController', () => {
     const file1 = new File(['PDF 1'], 'test1.pdf', { type: 'application/pdf' });
     const file2 = new File(['PDF 2'], 'test2.pdf', { type: 'application/pdf' });
 
-    // Start first upload
+    // Start first upload (won't resolve until we do).
     const p1 = (controller as any).handleFileUpload(file1);
-    // Immediately start second upload
+    // Immediately start second — it resolves without a wall-clock delay.
     const p2 = (controller as any).handleFileUpload(file2);
-
-    await Promise.all([p1, p2]);
+    await p2;
+    // Now let the stale result from file1 tick through; it must be ignored.
+    ((resolveFirst as unknown) as (() => void))(article1);
+    await p1;
 
     expect(controller.getCurrentArticle()).toEqual(article2);
     expect(refs.articleTitle.textContent).toBe('Second File');
+    // The stale first upload must never have been applied to the view, and
+    // only the newer upload may reach TTS.
+    expect(refs.articleTitle.textContent).not.toBe('First File');
+    expect(tts.loadArticle).toHaveBeenCalledTimes(1);
+    expect(tts.loadArticle).toHaveBeenCalledWith(
+      expect.any(Array),
+      'en',
+      'Second File',
+    );
   });
 
   it('handles successful txt file upload via createArticleFromTextFile', async () => {
