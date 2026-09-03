@@ -117,6 +117,7 @@ function buildTtsParagraphs(blocks: HTMLElement[], tts: TTSEngine): string[] {
       b.addEventListener('click', () => {
         tts.jumpToParagraph(index);
         if (!tts.state.isPlaying) tts.play();
+        b.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
     pendingText = '';
