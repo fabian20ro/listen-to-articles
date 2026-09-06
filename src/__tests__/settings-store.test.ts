@@ -152,6 +152,28 @@ describe('settings-store', () => {
     }
   });
 
+  it('accepts "system" theme: matches isTheme, saves, and loads back', () => {
+    localStorage.setItem(
+      'articlevoice-settings',
+      JSON.stringify({ ...defaults, theme: 'system' } satisfies Partial<AppSettings>),
+    );
+
+    expect(loadSettings(defaults).theme).toBe('system');
+
+    const settings: AppSettings = {
+      rate: 1,
+      lang: 'auto',
+      voiceName: '',
+      voiceGender: 'auto',
+      wakeLock: true,
+      theme: 'system',
+      deviceVoiceOnly: false,
+    };
+    saveSettings(settings);
+
+    expect(loadSettings(defaults).theme).toBe('system');
+  });
+
   it('preserves valid theme "light" alongside known "khaki"', () => {
     for (const theme of ['light' as const, 'khaki' as const]) {
       localStorage.setItem(

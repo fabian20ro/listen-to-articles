@@ -1,7 +1,7 @@
 import { isLanguage, type Language } from './language-config.js';
 
 /** Add new themes here — CSS must define matching [data-theme="<name>"] variables */
-const THEMES = ['dark', 'light', 'khaki'] as const;
+const THEMES = ['dark', 'light', 'khaki', 'system'] as const;
 export type Theme = (typeof THEMES)[number];
 
 export type VoiceGender = 'auto' | 'male' | 'female';

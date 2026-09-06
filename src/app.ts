@@ -397,13 +397,32 @@ async function main(): Promise<void> {
   });
 
   // Theme
-  document.documentElement.setAttribute('data-theme', settings.theme);
+  const darkSchemeQuery = '(prefers-color-scheme: dark)';
+
+  function resolveTheme(theme: Theme): Theme {
+    if (theme !== 'system') return theme;
+    return window.matchMedia(darkSchemeQuery).matches ? 'dark' : 'light';
+  }
+
+  function applyTheme(theme: Theme): void {
+    document.documentElement.setAttribute('data-theme', resolveTheme(theme));
+  }
+
+  // Follow the OS color scheme while the stored theme is 'system';
+  // the guard keeps the listener inert once the user picks a fixed theme.
+  window.matchMedia(darkSchemeQuery).addEventListener('change', () => {
+    if (settings.theme === 'system') {
+      applyTheme('system');
+    }
+  });
+
+  applyTheme(settings.theme);
   updateSegmentButtons(refs.themeBtns, settings.theme);
 
   refs.themeBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const theme = btn.dataset.value as Theme;
-      document.documentElement.setAttribute('data-theme', theme);
+      applyTheme(theme);
       settings.theme = theme;
       saveSettings(settings);
       updateSegmentButtons(refs.themeBtns, theme);
