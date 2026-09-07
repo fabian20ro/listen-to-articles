@@ -212,6 +212,15 @@ describe('extractParagraphsFromTextItems - input guards', () => {
     ];
     expect(extractParagraphsFromTextItems(items)).toEqual(['First Second']);
   });
+
+  it('should treat a transform array shorter than 6 entries as missing (y defaults to 0, regression: length<6 guard untested)', () => {
+    const items = [
+      { str: 'Top line', transform: [1, 0, 0, 1, 0, 700], height: 12 },
+      { str: 'short transform', transform: [1, 0, 0] as any, height: 12 }, // y defaults to 0 -> new para (gap 700 > 18)
+      { str: 'Bottom line', transform: [1, 0, 0, 1, 0, 650], height: 12 } // gap |0-650|=650 > 18 -> new para
+    ];
+    expect(extractParagraphsFromTextItems(items)).toEqual(['Top line', 'short transform', 'Bottom line']);
+  });
 });
 
 describe('parsePdfFromArrayBuffer - input guards', () => {
