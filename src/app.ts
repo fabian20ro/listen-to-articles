@@ -7,7 +7,8 @@
 
 import { TTSEngine } from './lib/tts-engine.js';
 import { getAppDomRefs } from './lib/dom-refs.js';
-import { loadSettings, saveSettings, type Theme } from './lib/settings-store.js';
+import { loadSettings, saveSettings } from './lib/settings-store.js';
+import { bindThemeControls } from './lib/theme-controls.js';
 import { PwaUpdateManager } from './lib/pwa-update-manager.js';
 import { ArticleController } from './lib/article-controller.js';
 import { APP_RELEASE, shortRelease } from './lib/release.js';
@@ -397,37 +398,7 @@ async function main(): Promise<void> {
   });
 
   // Theme
-  const darkSchemeQuery = '(prefers-color-scheme: dark)';
-
-  function resolveTheme(theme: Theme): Theme {
-    if (theme !== 'system') return theme;
-    return window.matchMedia(darkSchemeQuery).matches ? 'dark' : 'light';
-  }
-
-  function applyTheme(theme: Theme): void {
-    document.documentElement.setAttribute('data-theme', resolveTheme(theme));
-  }
-
-  // Follow the OS color scheme while the stored theme is 'system';
-  // the guard keeps the listener inert once the user picks a fixed theme.
-  window.matchMedia(darkSchemeQuery).addEventListener('change', () => {
-    if (settings.theme === 'system') {
-      applyTheme('system');
-    }
-  });
-
-  applyTheme(settings.theme);
-  updateSegmentButtons(refs.themeBtns, settings.theme);
-
-  refs.themeBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const theme = btn.dataset.value as Theme;
-      applyTheme(theme);
-      settings.theme = theme;
-      saveSettings(settings);
-      updateSegmentButtons(refs.themeBtns, theme);
-    });
-  });
+  const disposeThemeControls = bindThemeControls(refs.themeBtns, settings);
 
   // Language
   updateSegmentButtons(refs.settingsLangBtns, settings.lang);
@@ -537,7 +508,8 @@ async function main(): Promise<void> {
 
   // ── Lifecycle ───────────────────────────────────────────────
 
-  window.addEventListener('pagehide', () => {
+  window.addEventListener('pagehide', (event) => {
+    if (!event.persisted) disposeThemeControls();
     tts.dispose();
     updateManager?.dispose();
   });

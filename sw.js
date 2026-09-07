@@ -6,7 +6,7 @@
 // - Proxy/API requests: network-only.
 //
 // Bump SW_VERSION on releases that change cache behavior or app-shell wiring.
-const SW_VERSION = '2026.08.04.01';
+const SW_VERSION = '2026.09.07.01';
 const CACHE_NAME = `article-reader-${SW_VERSION}`;
 
 const PRECACHE = [
