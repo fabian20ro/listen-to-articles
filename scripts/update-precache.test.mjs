@@ -1,16 +1,38 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { pathToFileURL } from 'node:url';
+import { runInNewContext } from 'node:vm';
 import {
   collectDistFiles,
   renderServiceWorker,
   renderStableManifest,
   rewriteIndexHtmlForStableAssets,
-  syncDistServiceWorker,
 } from '../scripts/update-precache.mjs';
+
+// The script resolves its repository relative to import.meta.url. Import a fresh
+// copy under each fixture so sync tests never read or mutate the real dist/.
+async function fixtureRuntime(tempRoot) {
+  const scriptPath = join(tempRoot, 'scripts', 'update-precache.mjs');
+  mkdirSync(join(tempRoot, 'scripts'), { recursive: true });
+  copyFileSync(new URL('./update-precache.mjs', import.meta.url), scriptPath);
+  return import(/* @vite-ignore */ pathToFileURL(scriptPath).href);
+}
+
+function writeRuntimeSources(tempRoot) {
+  mkdirSync(join(tempRoot, 'icons'), { recursive: true });
+  mkdirSync(join(tempRoot, 'vendor', 'pdfjs'), { recursive: true });
+  writeFileSync(join(tempRoot, 'sw.js'), 'const PRECACHE = [\n];\n');
+  writeFileSync(join(tempRoot, 'manifest.json'), '{"name":"App","icons":[]}');
+  writeFileSync(join(tempRoot, 'icons', 'icon-192.png'), 'PNG_192');
+  writeFileSync(join(tempRoot, 'icons', 'icon-512.png'), 'PNG_512');
+  writeFileSync(join(tempRoot, 'vendor', 'pdfjs', 'pdf.worker.min.mjs'), '// pdf worker');
+  mkdirSync(join(tempRoot, 'dist'), { recursive: true });
+  writeFileSync(join(tempRoot, 'dist', 'index.html'), '<!doctype html>');
+}
 
 describe('update-precache', () => {
   it('collects emitted dist assets and renders them into PRECACHE', () => {
@@ -35,7 +57,7 @@ describe('update-precache', () => {
         ['./', ...entries],
       );
 
-      expect(rendered).toContain("'.',");
+      expect(rendered).toContain("'./',");
       expect(rendered).toContain("'./assets/main.js',");
       expect(rendered).toContain("'./assets/main.css',");
       expect(rendered).not.toContain("./old.js");
@@ -72,11 +94,8 @@ describe('update-precache', () => {
 
     const rendered = renderServiceWorker(template, entries);
 
-    // Backslashes doubled so JS parses them as literal '\\' chars.
-    expect(rendered).toContain("./assets/bad\\\\back\\\\path.js',");
-    // Single quotes escaped so they don't break out of the string literal.
-    expect(rendered).toContain('./assets/skip\\\'quote.js\\',');
-    expect(rendered).not.toMatch(/bad\back/);
+    // Verify parsed values, not another hand-escaped version of the renderer.
+    expect(runInNewContext(`${rendered}\nPRECACHE`)).toEqual(entries);
   });
 
   it('throws when template lacks PRECACHE pattern', () => {
@@ -96,52 +115,32 @@ describe('update-precache', () => {
     expect(/^icon-(192|512)-.*\.png$/.test('main-v1.js')).toBe(false);
   });
 
-  it('writes stable assets and removes stale hashed entries from dist/assets/', () => {
+  it('writes stable assets and removes stale hashed entries from dist/assets/', async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-precache-sync-'));
 
     try {
-      mkdirSync(join(tempRoot, 'icons'), { recursive: true });
-      mkdirSync(join(tempRoot, 'vendor', 'pdfjs'), { recursive: true });
-      writeFileSync(join(tempRoot, 'manifest.json'), '{"name":"App","icons":[]}');
-      writeFileSync(join(tempRoot, 'icons', 'icon-192.png'), 'PNG_192');
-      writeFileSync(join(tempRoot, 'icons', 'icon-512.png'), 'PNG_512');
-      writeFileSync(join(tempRoot, 'vendor', 'pdfjs', 'pdf.worker.min.mjs'), '// pdf worker');
-
+      writeRuntimeSources(tempRoot);
       const distDir = join(tempRoot, 'dist');
-      mkdirSync(distDir, { recursive: true });
-      writeFileSync(join(distDir, 'index.html'), '<!doctype html>');
-      mkdirSync(join(tempRoot, 'assets'), { recursive: true }); // reuse existing assets dir naming
-      writeFileSync(join(tempRoot, 'assets', 'manifest-abc123.json'), '{}');
-      writeFileSync(join(tempRoot, 'assets', 'icon-192-xyz.png'), 'PNG_192_STALE');
-      writeFileSync(join(tempRoot, 'assets', 'main-v1.js'), '// chunk');
+      const assetsDir = join(distDir, 'assets');
+      mkdirSync(assetsDir, { recursive: true });
+      writeFileSync(join(assetsDir, 'manifest-abc123.json'), '{}');
+      writeFileSync(join(assetsDir, 'icon-192-xyz.png'), 'PNG_192_STALE');
+      writeFileSync(join(assetsDir, 'main-v1.js'), '// chunk');
+      const html = '<link rel="manifest" href="./assets/old-manifest.json"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">';
+      writeFileSync(join(distDir, 'index.html'), html);
 
-      const manifestWritten = JSON.parse(readFileSync(join(tempRoot, 'manifest.json'), 'utf8'));
-      const renderedManifest = renderStableManifest(JSON.stringify(manifestWritten));
+      const { syncStableRuntimeAssets } = await fixtureRuntime(tempRoot);
+      syncStableRuntimeAssets();
+
+      const renderedManifest = readFileSync(join(distDir, 'manifest.webmanifest'), 'utf8');
       expect(renderedManifest).toContain('"src": "./icons/icon-192.png"');
       expect(renderedManifest).toContain('"src": "./icons/icon-512.png"');
-
-      // Verify the regex that filters stale entries matches expected files.
-      const staleEntry = 'manifest-abc123.json';
-      const iconStaleEntry = 'icon-192-xyz.png';
-      const keptEntry = 'main-v1.js';
-      expect(/^manifest-.*\.json$/.test(staleEntry)).toBe(true);
-      expect(/^icon-(192|512)-.*\.png$/.test(iconStaleEntry)).toBe(true);
-      expect(/^manifest-.*\.json$/.test(keptEntry)).toBe(false);
-
-      // Verify the stable paths resolve correctly.
-      const html = '<link rel="manifest" href="./assets/old-manifest.json"><link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">';
-      const rewritten = rewriteIndexHtmlForStableAssets(html);
+      expect(readFileSync(join(distDir, 'icons', 'icon-192.png'), 'utf8')).toBe('PNG_192');
+      expect(readFileSync(join(distDir, 'icons', 'icon-512.png'), 'utf8')).toBe('PNG_512');
+      expect(readFileSync(join(distDir, 'vendor', 'pdfjs', 'pdf.worker.min.mjs'), 'utf8')).toBe('// pdf worker');
+      const rewritten = readFileSync(join(distDir, 'index.html'), 'utf8');
       expect(rewritten).toContain('href="./manifest.webmanifest"');
       expect(rewritten).not.toContain('./assets/old-manifest.json');
-
-      // Inline the cleanup logic from syncStableRuntimeAssets and verify it removes stale files.
-      const assetsDir = join(tempRoot, 'assets');
-      for (const f of readdirSync(assetsDir)) {
-        if (/^manifest-.*\.json$/.test(f) || /^icon-(192|512)-.*\.png$/.test(f)) {
-          unlinkSync(join(assetsDir, f));
-        }
-      }
-
       const remaining = readdirSync(assetsDir);
       expect(remaining).toEqual(['main-v1.js']);
     } finally {
@@ -149,27 +148,22 @@ describe('update-precache', () => {
     }
   });
 
-  it('throws when dist/ does not exist', () => {
+  it('throws when dist/ does not exist', async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-no-dist-'));
 
     try {
+      const { syncDistServiceWorker } = await fixtureRuntime(tempRoot);
       expect(() => syncDistServiceWorker()).toThrow(/dist\/ does not exist/);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }
   });
 
-  it('returns outputSwPath and sorted precache entries with "./" first', () => {
+  it('returns outputSwPath and sorted precache entries with "./" first', async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-dist-'));
 
     try {
-      mkdirSync(join(tempRoot, 'icons'), { recursive: true });
-      mkdirSync(join(tempRoot, 'vendor', 'pdfjs'), { recursive: true });
-      writeFileSync(join(tempRoot, 'sw.js'), "const PRECACHE = [\n];\n");
-      writeFileSync(join(tempRoot, 'manifest.json'), '{"name":"App"}');
-      writeFileSync(join(tempRoot, 'icons', 'icon-192.png'), 'PNG_192');
-      writeFileSync(join(tempRoot, 'icons', 'icon-512.png'), 'PNG_512');
-      writeFileSync(join(tempRoot, 'vendor', 'pdfjs', 'pdf.worker.min.mjs'), '// pdf worker');
+      writeRuntimeSources(tempRoot);
 
       const distDir = join(tempRoot, 'dist');
       mkdirSync(distDir, { recursive: true });
@@ -183,19 +177,18 @@ describe('update-precache', () => {
       writeFileSync(join(distDir, 'assets', 'main.js'), 'code');
       writeFileSync(join(distDir, 'assets', 'style.css'), '{}');
 
+      const { syncDistServiceWorker } = await fixtureRuntime(tempRoot);
       const result = syncDistServiceWorker();
 
       expect(result.outputSwPath).toBe(outputSwPath);
       expect(result.precacheEntries[0]).toBe('./');
       // "./" first, then sorted dist files (excluding ./sw.js itself)
-      for (let i = 1; i < result.precacheEntries.length - 1; i++) {
-        const prev = result.precacheEntries[i];
-        const next = result.precacheEntries[i + 1];
-        expect(prev).toBeLessThanOrEqual(next);
-      }
+      expect(result.precacheEntries.slice(1)).toEqual(collectDistFiles(distDir).sort());
+      expect(result.precacheEntries).not.toContain('./sw.js');
       // Check the rendered sw.js contains precached entries and is valid JS.
       const written = readFileSync(outputSwPath, 'utf8');
       expect(written).toContain('const PRECACHE = [');
+      expect(runInNewContext(`${written}\nPRECACHE`)).toEqual(result.precacheEntries);
       // Entry for index.html should be present
       expect(written).toContain("./index.html");
     } finally {
@@ -203,25 +196,22 @@ describe('update-precache', () => {
     }
   });
 
-  it('deletes stale hashed icon and manifest files from dist/assets/ with multiple icons', () => {
+  it('deletes stale hashed icon and manifest files from dist/assets/ with multiple icons', async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-stale-cleanup-'));
 
     try {
-      mkdirSync(join(tempRoot, 'assets'), { recursive: true });
+      writeRuntimeSources(tempRoot);
+      const assetsDir = join(tempRoot, 'dist', 'assets');
+      mkdirSync(assetsDir, { recursive: true });
+      writeFileSync(join(assetsDir, 'manifest-abc123.json'), '{}');
+      writeFileSync(join(assetsDir, 'icon-192-xyz.png'), 'PNG_192_STALE');
+      writeFileSync(join(assetsDir, 'icon-512-abc.png'), 'PNG_512_STALE');
+      writeFileSync(join(assetsDir, 'main-v1.js'), '// chunk');
 
-      writeFileSync(join(tempRoot, 'assets', 'manifest-abc123.json'), '{}');
-      writeFileSync(join(tempRoot, 'assets', 'icon-192-xyz.png'), 'PNG_192_STALE');
-      writeFileSync(join(tempRoot, 'assets', 'icon-512-abc.png'), 'PNG_512_STALE');
-      writeFileSync(join(tempRoot, 'assets', 'main-v1.js'), '// chunk');
+      const { syncStableRuntimeAssets } = await fixtureRuntime(tempRoot);
+      syncStableRuntimeAssets();
 
-      const files = readdirSync(join(tempRoot, 'assets'));
-      for (const f of files) {
-        if (/^manifest-.*\.json$/.test(f) || /^icon-(192|512)-.*\.png$/.test(f)) {
-          unlinkSync(join(tempRoot, 'assets', f));
-        }
-      }
-
-      const remaining = readdirSync(join(tempRoot, 'assets'));
+      const remaining = readdirSync(assetsDir);
       expect(remaining).toEqual(['main-v1.js']);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
@@ -233,8 +223,6 @@ describe('update-precache', () => {
 
     try {
       // Create a completely empty directory — no sw.js, no assets/, nothing.
-      mkdirSync(tempRoot);
-
       const entries = collectDistFiles(tempRoot);
       expect(entries).toEqual([]);
     } finally {
@@ -269,7 +257,7 @@ describe('update-precache', () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-collect-skip-sw-'));
 
     try {
-      mkdirSync(tempRoot);
+      mkdirSync(join(tempRoot, 'assets'));
       writeFileSync(join(tempRoot, 'sw.js'), '// service worker');
       writeFileSync(join(tempRoot, 'index.html'), '<!doctype html>');
       writeFileSync(join(tempRoot, 'assets', 'main.js'), '// code');
@@ -309,21 +297,14 @@ describe('update-precache', () => {
     }
   });
 
-  it('throws when source icon file is missing in syncStableRuntimeAssets', () => {
+  it('throws when source icon file is missing in syncStableRuntimeAssets', async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-missing-icon-'));
 
     try {
-      // Verify that copyFileSync throws ENOENT when the source doesn't exist,
-      // which is what syncStableRuntimeAssets relies on to fail loudly.
-      const fakeIconsDir = join(tempRoot, 'icons');
-      mkdirSync(fakeIconsDir, { recursive: true });
-      // No icon files written — dir exists but empty.
-
-      expect(() => {
-        copyFileSync(join(fakeIconsDir, 'icon-192.png'), '/tmp/dest-icon-192.png');
-      }).toThrow(/ENOENT|no such file/i);
-
-      rmSync('/tmp/dest-icon-192.png', { force: true });
+      writeRuntimeSources(tempRoot);
+      unlinkSync(join(tempRoot, 'icons', 'icon-192.png'));
+      const { syncStableRuntimeAssets } = await fixtureRuntime(tempRoot);
+      expect(() => syncStableRuntimeAssets()).toThrow(/ENOENT|no such file/i);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }
@@ -389,10 +370,10 @@ describe('update-precache', () => {
 
     const rewritten = rewriteIndexHtmlForStableAssets(html);
 
-    expect(rewritten).toContain(`href="${STABLE_MANIFEST_PATH}"`);
+    expect(rewritten).toContain('href="./manifest.webmanifest"');
     expect(rewritten).not.toContain('./assets/manifest-abc.json');
     // apple-touch-icon points at the stable icon path, not old path
-    expect(rewritten).toContain(STABLE_ICON_PATH);
+    expect(rewritten).toContain('./icons/icon-192.png');
     expect(rewritten).not.toContain('./assets/old-icon.png');
   });
 
@@ -415,9 +396,9 @@ describe('update-precache', () => {
 
     const rewritten = rewriteIndexHtmlForStableAssets(html);
 
-    expect(rewritten).toContain(`href="${STABLE_MANIFEST_PATH}"`);
+    expect(rewritten).toContain('href="./manifest.webmanifest"');
     expect(rewritten).not.toContain('./assets/manifest-xyz.json');
-    expect(rewritten).toContain(`href="${STABLE_ICON_PATH}"`);
+    expect(rewritten).toContain('href="./icons/icon-192.png"');
     expect(rewritten).not.toContain('./assets/icon-abc.png');
     // apple-touch-icon rewritten to the same stable icon path
     expect(rewritten).toMatch(/apple-touch-icon.*href="\.\/icons\/icon-192\.png"/);
