@@ -225,6 +225,22 @@ describe('detectLangFromHtml', () => {
   it('returns empty string for empty input', () => {
     expect(detectLangFromHtml('')).toBe('');
   });
+
+  // ── BCP 47 no-language codes ─────────────────────────────────
+
+  it('normalizes BCP 47 no-language code "und" to empty string', () => {
+    expect(detectLangFromHtml('und')).toBe('');
+  });
+
+  it('normalizes "mis" and "zxx" to empty string', () => {
+    expect(detectLangFromHtml('mis')).toBe('');
+    expect(detectLangFromHtml('zxx')).toBe('');
+  });
+
+  it('normalizes no-language codes case-insensitively, even with a region suffix', () => {
+    expect(detectLangFromHtml('UND')).toBe('');
+    expect(detectLangFromHtml('und-XX')).toBe('');
+  });
 });
 
 // ── detectLangFromUrl ──────────────────────────────────────────────
@@ -438,6 +454,14 @@ describe('needsTranslation', () => {
     // .xyz is not in TLD_LANG_MAP and not in GENERIC_TLDS, so detectLangFromUrl
     // returns ''; all three signals are empty → translate.
     expect(needsTranslation('', 'https://example.xyz/page')).toBe(true);
+  });
+
+  it('treats htmlLang "und" as no signal, falling through to URL TLD', () => {
+    // BCP 47 no-language code: a supported .ro URL must win over "und".
+    // If "und" were treated as a known language, the first case would be true.
+    expect(needsTranslation('und', 'https://digi24.ro/stiri')).toBe(false);
+    // No supported URL signal → default to translate.
+    expect(needsTranslation('und', 'https://example.com/article')).toBe(true);
   });
 });
 
