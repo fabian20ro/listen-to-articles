@@ -285,6 +285,30 @@ describe('update-precache', () => {
     }
   });
 
+  it('precaches a nested sw.js — only root-level sw.js is excluded from entries', () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-collect-nested-sw-'));
+
+    try {
+      mkdirSync(join(tempRoot, 'assets'), { recursive: true });
+      writeFileSync(join(tempRoot, 'sw.js'), '// service worker');
+      writeFileSync(join(tempRoot, 'index.html'), '<!doctype html>');
+      writeFileSync(join(tempRoot, 'assets', 'sw.js'), '// nested file that happens to be named sw.js');
+      writeFileSync(join(tempRoot, 'assets', 'main.js'), '// code');
+
+      const entries = collectDistFiles(tempRoot).sort();
+
+      // The skip is exact on the relative path, so a nested file named sw.js
+      // is collected and would be precached.
+      expect(entries).toEqual([
+        './assets/main.js',
+        './assets/sw.js',
+        './index.html',
+      ]);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it('throws when source icon file is missing in syncStableRuntimeAssets', () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-missing-icon-'));
 
