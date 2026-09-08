@@ -780,6 +780,58 @@ ${itemrefs}
     expect(article.textContent).not.toContain('###### ');
     expect(article.textContent).toContain('long enough to pass');
   });
+
+  it('clamps h1 headings up to ## (level 2)', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>H1 Book</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body>
+    <h1>Book Level Heading</h1>
+    <p>A paragraph long enough to pass the extraction filter and survive the speakable-text check.</p>
+  </body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    const article = await parseEpubFromArrayBuffer(buf, 'https://example.com/h1-book.epub', domParserCtor);
+
+    // h1 is level 1; Math.max(level, 2) in extractTextFromXhtml raises it to
+    // two hashes, so a single-#' H1 marker must never appear.
+    expect(article.textContent).toContain('## Book Level Heading');
+    expect(article.textContent).not.toContain('### ');
+  });
 });
 
 describe('createArticleFromEpub', () => {
