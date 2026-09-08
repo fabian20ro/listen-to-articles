@@ -1217,3 +1217,10 @@ Each entry should follow this structure:
 **Outcome:** Success. Typecheck, 829 tests, production build, and Worker dry-run all pass from the replacement repository.
 **Insight:** Repository renames must preserve stable external service endpoints while moving repository- and Pages-scoped identities together.
 **Promoted to Lessons Learned:** No
+
+### [2026-09-07] Expose and verify the System theme end to end
+
+**What happened:** Added the missing System choice to the shipped theme selector. Native buttons retain keyboard behavior; the group has a label and selected buttons expose aria-pressed. Extracted existing theme binding into a small module so selection, persistence, and OS changes can be tested without booting unrelated speech/queue services. Cleanup preserves back/forward-cache restores. Bumped the service-worker version for the changed app shell.
+**Verification:** Tests use the real index.html and settings store; verify selection, reload, live OS changes, fixed-theme immunity, and listener disposal. Container-isolated local-green passed typechecks, 949 tests, and production build.
+**Insight:** Persisted model support alone does not make a setting user-accessible; acceptance must include the shipped control and the state it selects.
+**Promoted to Lessons Learned:** No
