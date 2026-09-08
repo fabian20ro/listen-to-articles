@@ -1224,3 +1224,10 @@ Each entry should follow this structure:
 **Verification:** Tests use the real index.html and settings store; verify selection, reload, live OS changes, fixed-theme immunity, and listener disposal. Container-isolated local-green passed typechecks, 949 tests, and production build.
 **Insight:** Persisted model support alone does not make a setting user-accessible; acceptance must include the shipped control and the state it selects.
 **Promoted to Lessons Learned:** No
+
+### [2026-09-08] Register and repair the precache script test suite
+
+**What happened:** Added `scripts/**/*.test.mjs` to Vitest discovery. Repaired invalid escaping syntax, undeclared assertion constants, duplicate/missing fixture directories, and assertions inconsistent with emitted paths or matcher types. Filesystem tests now import the unchanged production script from isolated temporary repositories and exercise its real synchronization functions instead of copying cleanup logic or touching the checkout's `dist/`.
+**Verification:** `node --check scripts/update-precache.test.mjs` and `git diff --check` pass. Official container-isolated `compound-local-green.py pixel-article-reader` passes both TypeScript checks, all 968 tests across 29 files (including all 19 precache tests), and the production build. No runtime source or service-worker cache changes.
+**Insight:** A green runner cannot validate a test file excluded by its include patterns; filesystem fixtures must also be connected to the production function's actual path resolution.
+**Promoted to Lessons Learned:** No
