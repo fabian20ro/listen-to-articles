@@ -190,6 +190,25 @@ describe('MediaSessionController', () => {
     expect(actions.play).toHaveBeenCalled();
   });
 
+  it('should invoke seekto action only when seekTime is provided', () => {
+    const actions = {
+      play: vi.fn(),
+      pause: vi.fn(),
+      stop: vi.fn(),
+      nexttrack: vi.fn(),
+      previoustrack: vi.fn(),
+      seekto: vi.fn(),
+    };
+    controller.setActions(actions);
+
+    const handler = mockMediaSession.actionHandlers.get('seekto');
+    handler?.({} as any);
+    expect(actions.seekto).not.toHaveBeenCalled();
+
+    handler?.({ seekTime: 42 } as any);
+    expect(actions.seekto).toHaveBeenCalledWith(42);
+  });
+
   it('should dispose remove audio from DOM and revoke object URL', () => {
     controller.activate();
     const urlBefore = controller['silentUrl'] as string | null;
