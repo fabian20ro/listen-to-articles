@@ -371,6 +371,33 @@ describe('PwaUpdateManager', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
+  it('applyDeferredReloadIfIdle returns deferred while playback is still active', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const onStatus = vi.fn();
+    const onUpdateApplied = vi.fn();
+    const reloadSpy = vi.fn();
+
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => true,
+      onStatus,
+      onUpdateApplied,
+      reload: reloadSpy,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+    onStatus.mockClear();
+
+    const result = manager.applyDeferredReloadIfIdle();
+
+    expect(result).toBe('deferred');
+    expect(manager.hasPendingReload()).toBe(true);
+    expect(onStatus).not.toHaveBeenCalled();
+    expect(onUpdateApplied).not.toHaveBeenCalled();
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
   it('non-silent checkForUpdates failure invokes onStatus with error message', async () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
