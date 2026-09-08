@@ -262,6 +262,43 @@ describe('splitTextBySentences', () => {
     const text = '!'.repeat(30); // not speakable
     expect(splitTextBySentences(text)).toEqual([]);
   });
+
+  it('groups more than sentencesPerParagraph sentences into multiple chunks', () => {
+    const s1 = 'First sentence is long enough to count.';
+    const s2 = 'Second sentence is long enough to count.';
+    const s3 = 'Third sentence is long enough to count.';
+    const s4 = 'Fourth sentence is long enough to count.';
+    const s5 = 'Fifth sentence is long enough to count.';
+    const s6 = 'Sixth sentence is long enough to count.';
+    const s7 = 'Seventh sentence is long enough to count.';
+    // 7 sentences > default 3 → chunked loop: 3 + 3 + 1
+    expect(splitTextBySentences(`${s1} ${s2} ${s3} ${s4} ${s5} ${s6} ${s7}`)).toEqual([
+      `${s1} ${s2} ${s3}`,
+      `${s4} ${s5} ${s6}`,
+      s7,
+    ]);
+  });
+
+  it('honors a custom minChars threshold for chunked paragraphs', () => {
+    const s1 = 'First sentence is long enough to count.';
+    const s2 = 'Second sentence is long enough to count.';
+    const s3 = 'Third sentence is long enough to count.';
+    const s4 = 'Fourth sentence is long enough to count.';
+    const s5 = 'Fifth sentence is long enough to count.';
+    const s6 = 'Sixth sentence is long enough to count.';
+    const s7 = 'Seventh sentence is long enough to count.';
+    // text > default minChars (20), so 3 sentences pass when minChars=100
+    expect(splitTextBySentences(`${s1} ${s2} ${s3} ${s4} ${s5} ${s6} ${s7}`, 3, 100)).toEqual([
+      `${s1} ${s2} ${s3}`,
+      `${s4} ${s5} ${s6}`,
+    ]);
+    // default minChars (20) keeps the trailing 1-sentence chunk
+    expect(splitTextBySentences(`${s1} ${s2} ${s3} ${s4} ${s5} ${s6} ${s7}`, 3, 20)).toEqual([
+      `${s1} ${s2} ${s3}`,
+      `${s4} ${s5} ${s6}`,
+      s7,
+    ]);
+  });
 });
 
 
