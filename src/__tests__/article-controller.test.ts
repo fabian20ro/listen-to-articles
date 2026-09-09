@@ -113,6 +113,51 @@ describe('ArticleController', () => {
     vi.unstubAllGlobals();
   });
 
+  it('downloads the current article as a sanitized .md file', async () => {
+    const refs = makeRefs();
+    const tts = { stop: vi.fn() } as any;
+    const controller = new ArticleController({
+      refs,
+      tts,
+      proxyBase: '',
+      initialLangOverride: 'auto',
+    });
+
+    const markdown = '# My Great Article!\n\nBody text.';
+    (controller as any).currentArticle = {
+      title: 'My Great Article!',
+      textContent: markdown,
+      markdown,
+    } as any;
+
+    let capturedBlob: Blob | null = null;
+    const revokeSpy = vi.fn();
+    vi.stubGlobal('URL', {
+      createObjectURL: (blob: Blob) => {
+        capturedBlob = blob;
+        return 'blob:mock-url';
+      },
+      revokeObjectURL: revokeSpy,
+    });
+
+    let downloadName = '';
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        downloadName = this.download;
+      });
+
+    (controller as any).downloadMarkdown();
+
+    expect(capturedBlob).toBeInstanceOf(Blob);
+    expect(await capturedBlob?.text()).toBe(markdown);
+    expect(downloadName).toBe('my-great-article.md');
+    expect(downloadName.endsWith('.md')).toBe(true);
+    expect(revokeSpy).toHaveBeenCalledWith('blob:mock-url');
+
+    clickSpy.mockRestore();
+  });
+
   it('loads a shared-url article via handleInitialSharedUrl', async () => {
     const sharedArticle = {
       title: 'Shared Article',
