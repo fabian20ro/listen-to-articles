@@ -32,6 +32,7 @@ export class ArticleController {
   private currentTtsParagraphs: string[] = [];
   private langOverride: 'auto' | Language;
   private loadToken = 0;
+  private downloadMdBtn: HTMLButtonElement | null = null;
 
   constructor(private readonly options: ArticleControllerOptions) {
     this.langOverride = options.initialLangOverride;
@@ -69,6 +70,11 @@ export class ArticleController {
 
     refs.copyMdBtn.addEventListener('click', () => {
       void this.copyMarkdown();
+    });
+
+    this.downloadMdBtn = this.createDownloadMdButton(refs);
+    this.downloadMdBtn.addEventListener('click', () => {
+      this.downloadMarkdown();
     });
 
     refs.errorRetry.addEventListener('click', () => {
@@ -272,6 +278,10 @@ export class ArticleController {
     refs.copyMdBtn.disabled = false;
     refs.copyMdBtn.textContent = 'Copy as Markdown';
 
+    if (this.downloadMdBtn) {
+      this.downloadMdBtn.classList.toggle('hidden', !article.markdown);
+    }
+
     this.currentTtsParagraphs = renderArticleBody(article, refs.articleText, this.options.tts);
 
     this.options.tts.loadArticle(this.currentTtsParagraphs, resolvedLang, article.title);
@@ -296,6 +306,41 @@ export class ArticleController {
     } catch {
       this.showError('Could not copy markdown to clipboard.');
     }
+  }
+
+  private createDownloadMdButton(refs: AppDomRefs): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.className = 'translate-link hidden';
+    btn.textContent = 'Download as Markdown';
+    const target = refs.copyMdBtn;
+    if (target.parentNode) {
+      target.parentNode.insertBefore(btn, target.nextSibling);
+    }
+    return btn;
+  }
+
+  private downloadMarkdown(): void {
+    if (!this.currentArticle?.markdown) return;
+    const markdown = this.currentArticle.markdown;
+    const filename = this.buildDownloadFilename(this.currentArticle.title);
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  private buildDownloadFilename(title: string): string {
+    const base = title
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+    return `${base || 'article'}.md`;
   }
 
   private async translateCurrentArticle(): Promise<void> {
