@@ -205,9 +205,8 @@ async function fetchPlayerJson(videoId: string, apiKey: string, fetcher: typeof 
  *   2. `playerJson.playerCaptionsTracklistRenderer.captionTracks[0]`
  *
  * Throws:
- *   - "Transcript metadata is not available" when the captions key is absent or
- *     its renderer does not exist (but playabilityStatus.status === 'OK' means a
- *     different error).
+ *   - "Transcript metadata is not available" when neither renderer exists
+ *     (but playabilityStatus.status === 'OK' means a different error).
  *   - "No transcript found" when `captionTracks` exists but is empty.
  *
  * Track field precedence for fetch URL: `baseUrl`, then `url`, then failure.
@@ -218,7 +217,7 @@ export function pickTranscriptTrack(playerJson: any): TranscriptTrack {
     || playerJson?.playerCaptionsTracklistRenderer;
   const tracks = tracklist?.captionTracks;
 
-  if (!playerJson?.captions || !tracklist) {
+  if (!tracklist) {
     if (playerJson?.playabilityStatus?.status === 'OK') {
       throw new Error('No transcript found for this video. Captions may be disabled.');
     }
