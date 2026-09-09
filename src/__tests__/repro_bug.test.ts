@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { extractYoutubeVideoId } from '../lib/extractors/extract-youtube';
+import {
+  extractArticleFromYoutube,
+  extractYoutubeVideoId,
+  pickTranscriptTrack,
+} from '../lib/extractors/extract-youtube';
 
 describe('extractYoutubeVideoId bug reproduction', () => {
   it('extracts ID even with trailing slash', () => {
@@ -145,5 +149,93 @@ describe('extractYoutubeVideoId bug reproduction', () => {
   it('returns null for youtu.be with empty path', () => {
     // pathname '/' → slice(1) → '' → regex fails; no video ID is encoded.
     expect(extractYoutubeVideoId('https://youtu.be/')).toBeNull();
+  });
+});
+
+describe('pickTranscriptTrack', () => {
+  it('prefers the nested captions.playerCaptionsTracklistRenderer track', () => {
+    const nestedTrack = { baseUrl: 'https://nested.example/track', languageCode: 'en' };
+    const topTrack = { baseUrl: 'https://top.example/track', languageCode: 'fr' };
+    const playerJson = {
+      captions: { playerCaptionsTracklistRenderer: { captionTracks: [nestedTrack] } },
+      playerCaptionsTracklistRenderer: { captionTracks: [topTrack] },
+    };
+    expect(pickTranscriptTrack(playerJson)).toBe(nestedTrack);
+  });
+
+  it('falls back to the top-level playerCaptionsTracklistRenderer', () => {
+    const topTrack = { baseUrl: 'https://top.example/track', languageCode: 'en' };
+    const playerJson = {
+      playerCaptionsTracklistRenderer: { captionTracks: [topTrack] },
+    };
+    expect(pickTranscriptTrack(playerJson)).toBe(topTrack);
+  });
+
+  it('throws the captions-disabled error when no tracklist exists but playability is OK', () => {
+    expect(() => pickTranscriptTrack({ playabilityStatus: { status: 'OK' } })).toThrow(
+      'No transcript found for this video. Captions may be disabled.',
+    );
+  });
+
+  it('throws the metadata error when no tracklist exists and playability is not OK', () => {
+    expect(() =>
+      pickTranscriptTrack({ playabilityStatus: { status: 'LOGIN_REQUIRED' } }),
+    ).toThrow('Transcript metadata is not available for this video.');
+  });
+
+  it('throws the captions-disabled error when captionTracks is an empty array', () => {
+    expect(() =>
+      pickTranscriptTrack({
+        captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } },
+      }),
+    ).toThrow('No transcript found for this video. Captions may be disabled.');
+  });
+
+  it('throws the captions-disabled error when captionTracks is missing from the renderer', () => {
+    expect(() => pickTranscriptTrack({ captions: { playerCaptionsTracklistRenderer: {} } })).toThrow(
+      'No transcript found for this video. Captions may be disabled.',
+    );
+  });
+
+  it('throws the metadata error for an empty playerJson', () => {
+    expect(() => pickTranscriptTrack(undefined)).toThrow(
+      'Transcript metadata is not available for this video.',
+    );
+  });
+});
+
+describe('extractArticleFromYoutube', () => {
+  it('rejects with the bare invalid-URL error (no wrap) for a non-YouTube URL', async () => {
+    let caught: unknown;
+    try {
+      await extractArticleFromYoutube('https://example.com/watch?v=abc12345678');
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toBe('Invalid YouTube URL.');
+  });
+
+  it('rejects with the bare invalid-URL error (no wrap) for a youtu.be URL with a malformed ID', async () => {
+    let caught: unknown;
+    try {
+      await extractArticleFromYoutube('https://youtu.be/tooshort');
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toBe('Invalid YouTube URL.');
+  });
+
+  it('wraps upstream extraction failures with the YouTube extraction failed prefix', async () => {
+    const fetcher: typeof fetch = () => Promise.reject(new Error('network down'));
+    let caught: unknown;
+    try {
+      await extractArticleFromYoutube('https://www.youtube.com/watch?v=abc12345678', fetcher);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toBe('YouTube extraction failed: network down');
   });
 });
