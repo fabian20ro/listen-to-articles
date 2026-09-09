@@ -49,6 +49,13 @@ describe('session-store', () => {
       expect(loadLastArticle()).toBeNull();
     });
 
+    it('returns null without removing storage when the stored value is an empty string', () => {
+      localStorage.setItem('article-reader-last-article', '');
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBe('');
+    });
+
     it('returns the saved article when storage is valid', () => {
       const payload: LastSessionData = { article: makeArticle(), savedAt: 123456789 };
       localStorage.setItem('article-reader-last-article', JSON.stringify(payload));
