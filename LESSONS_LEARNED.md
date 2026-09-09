@@ -30,6 +30,8 @@ If a lesson becomes obsolete (e.g., a dependency was removed, an API changed), m
 
 ## Code Patterns & Pitfalls
 
+**[2026-09-09] Validate resolved fallbacks, not preferred wrappers** — When metadata may come from a nested or top-level renderer, validate the selected renderer after applying precedence. Requiring the nested wrapper afterward silently makes the valid top-level fallback unreachable. Pin absent-wrapper fallback, nested precedence, and missing-data errors separately.
+
 **[2026-04-10] Modular mocking in Vitest** — When using ES module imports, global `globalThis.MockedClass` overrides in `beforeEach` will NOT affect the imported module. Use `vi.mock('module-name')` at the top level and `vi.mocked(ImportedClass).mockImplementation(...)` in tests to correctly intercept calls. Note: use regular `function` instead of arrow functions for mocking constructors (`new Mock()`).
 
 **[2026-04-13] Bypass YouTube 429s via direct InnerTube API call** — Cloudflare Worker IPs are frequently rate-limited for the initial YouTube `/watch` page. To bypass this, use a static Android InnerTube API key (`AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8`) to call `youtubei/v1/player` directly with recent Android stealth headers (`clientVersion`, `User-Agent`, `Referer`). Implement a fallback to the watch page extraction flow in case the static key changes.

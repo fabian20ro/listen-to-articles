@@ -1231,3 +1231,12 @@ Each entry should follow this structure:
 **Verification:** `node --check scripts/update-precache.test.mjs` and `git diff --check` pass. Official container-isolated `compound-local-green.py pixel-article-reader` passes both TypeScript checks, all 968 tests across 29 files (including all 19 precache tests), and the production build. No runtime source or service-worker cache changes.
 **Insight:** A green runner cannot validate a test file excluded by its include patterns; filesystem fixtures must also be connected to the production function's actual path resolution.
 **Promoted to Lessons Learned:** No
+
+### [2026-09-09] Honor top-level YouTube transcript renderer fallback
+
+**Context:** Natural post-restart Compound run `d1628a53` surfaced a real runtime failure in its retained `repro_bug` test. `pickTranscriptTrack` computed the documented top-level renderer fallback, then rejected it whenever the unrelated `captions` wrapper was absent. Older orphan patch `910beb3` remains outside this fix.
+**What happened:** Added direct public-function regression coverage for absent `captions` plus a valid top-level renderer. Pinned nested-renderer precedence, rejection of empty nested tracks, and existing missing-renderer/playability errors. Changed the guard to validate the resolved renderer only; corrected its error documentation.
+**Verification:** TDD red with original guard: 1 failed / 34 passed in `youtube.test.ts`; green after one-line fix: 35 passed. Canonical container-isolated `compound-local-green.py pixel-article-reader` passed both TypeScript checks, all 983 tests across 29 files, and production build.
+**Outcome:** Documented fallback now reachable; nested precedence and error messages unchanged. No cache-policy, app-shell wiring, dependency, or external-service changes.
+**Insight:** Validate the resolved fallback value, not presence of the preferred source's wrapper.
+**Promoted to Lessons Learned:** Yes

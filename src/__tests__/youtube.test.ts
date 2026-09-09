@@ -1,7 +1,41 @@
 import { describe, it, expect, vi } from 'vitest';
-import { extractArticleFromYoutube, extractYoutubeVideoId } from '../lib/extractors/extract-youtube.js';
+import { extractArticleFromYoutube, extractYoutubeVideoId, pickTranscriptTrack } from '../lib/extractors/extract-youtube.js';
 
 const ANDROID_API_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
+
+describe('pickTranscriptTrack', () => {
+  const nestedTrack = { baseUrl: 'https://example.com/nested' };
+  const fallbackTrack = { baseUrl: 'https://example.com/fallback' };
+
+  it('uses the top-level renderer when captions is absent', () => {
+    expect(pickTranscriptTrack({
+      playerCaptionsTracklistRenderer: { captionTracks: [fallbackTrack] },
+      playabilityStatus: { status: 'OK' },
+    })).toBe(fallbackTrack);
+  });
+
+  it('prefers the nested renderer when both renderers exist', () => {
+    expect(pickTranscriptTrack({
+      captions: { playerCaptionsTracklistRenderer: { captionTracks: [nestedTrack] } },
+      playerCaptionsTracklistRenderer: { captionTracks: [fallbackTrack] },
+    })).toBe(nestedTrack);
+  });
+
+  it('does not bypass an empty nested renderer using top-level tracks', () => {
+    expect(() => pickTranscriptTrack({
+      captions: { playerCaptionsTracklistRenderer: { captionTracks: [] } },
+      playerCaptionsTracklistRenderer: { captionTracks: [fallbackTrack] },
+    })).toThrow('No transcript found for this video. Captions may be disabled.');
+  });
+
+  it.each([
+    ['OK', 'No transcript found for this video. Captions may be disabled.'],
+    ['ERROR', 'Transcript metadata is not available for this video.'],
+    [undefined, 'Transcript metadata is not available for this video.'],
+  ])('preserves missing-renderer errors for playability %s', (status, message) => {
+    expect(() => pickTranscriptTrack({ playabilityStatus: { status } })).toThrow(message);
+  });
+});
 
 describe('extractYoutubeVideoId', () => {
   it('extracts ID from standard watch URL', () => {
