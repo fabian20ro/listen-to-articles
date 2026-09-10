@@ -43,6 +43,14 @@ describe('DEFAULT_LANGUAGE', () => {
   it('defaults to English', () => {
     expect(DEFAULT_LANGUAGE).toBe('en');
   });
+
+  // Pin the concrete default TTS voice code: new sessions speak with the
+  // default language's TTS code. The structural tests above pass even if the
+  // default language changes (mirror follows); only this concrete assertion
+  // catches that.
+  it('uses the "en-US" TTS code for the default language', () => {
+    expect(LANG_TTS_CODES[DEFAULT_LANGUAGE]).toBe('en-US');
+  });
 });
 
 // ── LANG_TTS_CODES ──────────────────────────────────────────────────
