@@ -101,6 +101,12 @@ describe('sentence-splitter', () => {
       expect(splitSentences('')).toEqual(['']);
     });
 
+    it('should throw TypeError for non-string input', () => {
+      expect(() => splitSentences(null as unknown as string)).toThrow(
+        'splitSentences expects a string',
+      );
+    });
+
     it('should merge very short fragments into one sentence', () => {
       const text = 'A. B. C. D.';
       expect(splitSentences(text)).toEqual(['A. B. C. D.']);
