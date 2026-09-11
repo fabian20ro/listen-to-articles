@@ -461,13 +461,15 @@ describe('queue-store', () => {
 
       const a = makeItem({ id: 'keep-me' });
       let failCalled = false;
-      const result = removeFromQueue([a], 'remove-me', (err) => { failCalled = true; });
+      let failError: unknown;
+      const result = removeFromQueue([a], 'remove-me', (err) => { failCalled = true; failError = err; });
 
       // In-memory state must remain consistent even when persistence fails,
       // so callers can rely on the returned array for UI rendering.
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('keep-me');
       expect(failCalled).toBe(true);
+      expect(failError).toBeInstanceOf(DOMException);
 
       Object.defineProperty(globalThis, 'localStorage', { value: mock.value, configurable: true });
     });
