@@ -59,4 +59,41 @@ describe('QueueController', () => {
     expect(onError).toHaveBeenCalledWith('Failed to load: broken');
     expect(play).toHaveBeenCalledOnce();
   });
+
+  it('auto-advances to the next item after the end-of-article delay', async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem('article-reader-queue', JSON.stringify([
+        item('a'), item('b'),
+      ]));
+      const loadArticleFromUrl = vi.fn().mockResolvedValue(undefined);
+      const play = vi.fn();
+      const onAutoAdvanceCountdown = vi.fn();
+      const controller = new QueueController({
+        articleController: { loadArticleFromUrl } as never,
+        tts: { play, stop: vi.fn() } as never,
+        callbacks: {
+          onQueueChange: vi.fn(),
+          onAutoAdvanceCountdown,
+          onAutoAdvanceCancelled: vi.fn(),
+          onError: vi.fn(),
+        },
+      });
+
+      controller.syncCurrentById('a');
+      controller.handleArticleEnd();
+
+      expect(onAutoAdvanceCountdown).toHaveBeenCalledWith('b');
+      expect(play).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(play).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(controller.getCurrentIndex()).toBe(1);
+      expect(loadArticleFromUrl).toHaveBeenCalledWith('https://example.com/b');
+      expect(play).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
