@@ -37,6 +37,7 @@ export interface QueueCallbacks {
 export type QueueEvents = {
   queueChanged: { items: QueueItem[]; currentIndex: number };
   autoAdvanceStarted: { nextTitle: string };
+  autoAdvanceCountdown: { seconds: number };
   autoAdvanceCancelled: void;
   error: { message: string };
 };
@@ -53,6 +54,8 @@ export class QueueController {
   private items: QueueItem[];
   private currentIndex = -1;
   private autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoAdvanceInterval: ReturnType<typeof setInterval> | null = null;
+  private countdownSeconds = 0;
   private _isLoadingItem = false;
   private readonly ac: ArticleController;
   private readonly tts: TTSEngine;
@@ -89,6 +92,16 @@ export class QueueController {
 
   hasNext(): boolean {
     return this.currentIndex < this.items.length - 1;
+  }
+
+  /**
+   * Seconds remaining before auto-advance fires; 0 when no countdown is
+   * running. Starts at `Math.ceil(AUTO_ADVANCE_DELAY_MS / 1000)` and
+   * decrements by 1 each second, reaching 0 when the timeout fires.
+   */
+  get autoAdvanceSeconds(): number {
+    if (this.autoAdvanceTimer === null) return 0;
+    return this.countdownSeconds;
   }
 
   getNextItem(): QueueItem | null {
@@ -246,8 +259,26 @@ export class QueueController {
     this.cb.onAutoAdvanceCountdown(next.title);
     this.events.emit('autoAdvanceStarted', { nextTitle: next.title });
 
+    this.countdownSeconds = Math.ceil(AUTO_ADVANCE_DELAY_MS / 1000);
+    this.events.emit('autoAdvanceCountdown', { seconds: this.countdownSeconds });
+
+    if (this.autoAdvanceInterval !== null) {
+      clearInterval(this.autoAdvanceInterval);
+      this.autoAdvanceInterval = null;
+    }
+    this.autoAdvanceInterval = setInterval(() => {
+      if (this.autoAdvanceTimer === null) return;
+      this.countdownSeconds = Math.max(0, this.countdownSeconds - 1);
+      this.events.emit('autoAdvanceCountdown', { seconds: this.countdownSeconds });
+    }, 1000);
+
     this.autoAdvanceTimer = setTimeout(() => {
       this.autoAdvanceTimer = null;
+      if (this.autoAdvanceInterval !== null) {
+        clearInterval(this.autoAdvanceInterval);
+        this.autoAdvanceInterval = null;
+      }
+      this.countdownSeconds = 0;
       void this.playNext();
     }, AUTO_ADVANCE_DELAY_MS);
   }
@@ -257,6 +288,11 @@ export class QueueController {
     if (this.autoAdvanceTimer !== null) {
       clearTimeout(this.autoAdvanceTimer);
       this.autoAdvanceTimer = null;
+      if (this.autoAdvanceInterval !== null) {
+        clearInterval(this.autoAdvanceInterval);
+        this.autoAdvanceInterval = null;
+      }
+      this.countdownSeconds = 0;
       this.cb.onAutoAdvanceCancelled();
       this.events.emit('autoAdvanceCancelled');
     }

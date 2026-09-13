@@ -28,11 +28,32 @@ export class QueueRenderer {
   private readonly refs: QueueRendererRefs;
   private readonly cb: QueueRendererCallbacks;
   private dragState: DragState | null = null;
+  private countdownElement: HTMLElement | null = null;
 
-  constructor(refs: QueueRendererRefs, callbacks: QueueRendererCallbacks) {
+  constructor(
+    refs: QueueRendererRefs,
+    callbacks: QueueRendererCallbacks,
+    private readonly getCountdownSeconds: () => number = () => 0,
+  ) {
     this.refs = refs;
     this.cb = callbacks;
     this.initDragListeners();
+  }
+
+  /**
+   * Update the auto-advance countdown shown in the queue list area.
+   * Visible with the remaining seconds while a countdown is running;
+   * hidden when it is not.
+   */
+  updateCountdown(): void {
+    if (!this.countdownElement) return;
+    const seconds = this.getCountdownSeconds();
+    if (seconds > 0) {
+      this.countdownElement.textContent = `Next in ${seconds}s`;
+      this.countdownElement.classList.remove('hidden');
+    } else {
+      this.countdownElement.classList.add('hidden');
+    }
   }
 
   render(items: QueueItem[], currentIndex: number): void {
@@ -67,6 +88,19 @@ export class QueueRenderer {
     items.forEach((item, idx) => {
       refs.queueList.appendChild(this.buildListItem(item, idx, currentIndex));
     });
+    refs.queueList.appendChild(this.buildCountdownRow());
+    this.updateCountdown();
+  }
+
+  /** Countdown row rendered at the bottom of the queue list area. */
+  private buildCountdownRow(): HTMLElement {
+    if (!this.countdownElement) {
+      this.countdownElement = document.createElement('li');
+      this.countdownElement.className = 'queue-countdown';
+      this.countdownElement.setAttribute('role', 'status');
+      this.countdownElement.classList.add('hidden');
+    }
+    return this.countdownElement;
   }
 
   // ── List item construction ──────────────────────────────────────

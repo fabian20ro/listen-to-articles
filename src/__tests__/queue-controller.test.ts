@@ -96,4 +96,56 @@ describe('QueueController', () => {
       vi.useRealTimers();
     }
   });
+
+  it('counts auto-advance seconds down to zero and clears the interval on cancel', async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem('article-reader-queue', JSON.stringify([
+        item('a'), item('b'),
+      ]));
+      const loadArticleFromUrl = vi.fn().mockResolvedValue(undefined);
+      const play = vi.fn();
+      const onAutoAdvanceCancelled = vi.fn();
+      const controller = new QueueController({
+        articleController: { loadArticleFromUrl } as never,
+        tts: { play, stop: vi.fn() } as never,
+        callbacks: {
+          onQueueChange: vi.fn(),
+          onAutoAdvanceCountdown: vi.fn(),
+          onAutoAdvanceCancelled,
+          onError: vi.fn(),
+        },
+      });
+
+      let ticks = 0;
+      controller.events.on('autoAdvanceCountdown', () => {
+        ticks++;
+      });
+
+      controller.syncCurrentById('a');
+      controller.handleArticleEnd();
+
+      expect(controller.autoAdvanceSeconds).toBe(2);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(controller.autoAdvanceSeconds).toBe(1);
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(controller.autoAdvanceSeconds).toBe(0);
+      expect(play).toHaveBeenCalledTimes(1);
+
+      controller.syncCurrentById('a');
+      controller.handleArticleEnd();
+      expect(controller.autoAdvanceSeconds).toBe(2);
+      const ticksBeforeCancel = ticks;
+
+      controller.cancelAutoAdvance();
+
+      expect(onAutoAdvanceCancelled).toHaveBeenCalledTimes(1);
+      expect(controller.autoAdvanceSeconds).toBe(0);
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(play).toHaveBeenCalledTimes(1);
+      expect(ticks).toBe(ticksBeforeCancel);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
