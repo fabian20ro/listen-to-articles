@@ -16,9 +16,18 @@ import {
  * Create an Article directly from pasted plain text (no fetch needed).
  */
 export function createArticleFromText(text: string): Article {
-  // Strip markdown image references before paragraph processing — TTS would otherwise read them aloud.
+  // Strip markdown image, link, bold, heading, and horizontal-rule markers before
+  // paragraph processing — TTS would otherwise read literal asterisks, hashes, and dashes aloud.
   const LINK_MD_RE = /\[([^\]]*)\]\([^()]*\)/g;
-  const cleaned = text.replace(IMAGE_MD_RE, '').replace(LINK_MD_RE, '$1');
+  const BOLD_MD_RE = /\*\*([^*\n]+)\*\*/g;
+  const HEADING_MD_RE = /^\s{0,3}#{1,6}\s+/gm;
+  const HORIZONTAL_RULE_RE = /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/gm;
+  const cleaned = text
+    .replace(IMAGE_MD_RE, '')
+    .replace(LINK_MD_RE, '$1')
+    .replace(BOLD_MD_RE, '$1')
+    .replace(HEADING_MD_RE, '')
+    .replace(HORIZONTAL_RULE_RE, '');
   const lines = cleaned.split('\n');
   const firstLine = lines[0].trim();
   const hasTitle = firstLine.length > 0 && firstLine.length <= 150;

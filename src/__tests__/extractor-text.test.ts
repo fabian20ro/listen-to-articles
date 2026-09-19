@@ -118,6 +118,45 @@ describe('createArticleFromText', () => {
     expect(article.textContent).toContain(para2);
   });
 
+  it('strips markdown bold markers from body text', () => {
+    const text =
+      'My Article\nThis text contains **bold word** inline and it has enough words to process.';
+    const article = createArticleFromText(text);
+
+    expect(article.textContent).not.toContain('*');
+    expect(article.paragraphs.some((p) => p.includes('bold word'))).toBe(true);
+  });
+
+  it('strips markdown heading markers from body lines', () => {
+    const text =
+      'My Article\n# My Heading Title Here\nThis body has enough words to be processed by the reader correctly.';
+    const article = createArticleFromText(text);
+
+    expect(article.title).toBe('My Article');
+    expect(article.textContent).not.toContain('#');
+    expect(article.paragraphs.some((p) => p.includes('My Heading Title Here'))).toBe(true);
+  });
+
+  it('removes horizontal-rule lines between paragraphs', () => {
+    const text =
+      'My Article\nFirst paragraph with enough words to count as valid body content.\n---\nSecond paragraph also has enough words to process correctly.';
+    const article = createArticleFromText(text);
+
+    expect(article.paragraphs).toHaveLength(2);
+    expect(
+      article.paragraphs.some((p) => /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(p)),
+    ).toBe(false);
+  });
+
+  it('preserves link text and strips image markers when mixed with formatting', () => {
+    const text =
+      'My Article\nRead [link text](http://example.com) for more. This sentence has enough words to process.\n![alt](img.png)';
+    const article = createArticleFromText(text);
+
+    expect(article.paragraphs.some((p) => p.includes('link text'))).toBe(true);
+    expect(article.textContent).not.toContain('![alt]');
+  });
+
   it('rejects body that becomes empty after stripping all-image content', () => {
     // When the body is composed entirely of markdown image references, stripping them
     // leaves nothing — must raise the standard short-text error.
