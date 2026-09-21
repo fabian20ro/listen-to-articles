@@ -213,6 +213,19 @@ describe('settings-store', () => {
     expect(settings).toEqual(createDefaultSettings(defaults));
   });
 
+  it.each([null, 42, true, 'hello', []] as const)(
+    'returns full defaults when storage holds valid JSON that is not an object (%s)',
+    (storedValue) => {
+      localStorage.setItem(
+        'articlevoice-settings',
+        JSON.stringify(storedValue),
+      );
+
+      const settings = loadSettings(defaults);
+      expect(settings).toEqual(createDefaultSettings(defaults));
+    },
+  );
+
   it('ignores extraneous keys stored alongside valid data', () => {
     localStorage.setItem(
       'articlevoice-settings',
