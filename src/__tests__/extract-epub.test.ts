@@ -832,6 +832,61 @@ ${itemrefs}
     expect(article.textContent).toContain('## Book Level Heading');
     expect(article.textContent).not.toContain('### ');
   });
+
+  it('does not duplicate text of nested blocks when a block wraps another block', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>Nested Book</dc:title></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    // A div wraps a <p>. extractTextFromXhtml takes only the div's direct text
+    // nodes for blocks that contain nested blocks, so the nested paragraph is
+    // emitted exactly once. A regression to block.textContent would duplicate it.
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body>
+    <div>Direct outer div text that is long enough to survive the filters.
+<p>Inner paragraph carrying a unique token zqxwv-7342 that must appear exactly once.</p>
+</div>
+  </body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); };
+    };
+
+    const article = await parseEpubFromArrayBuffer(buf, 'https://example.com/nested-book.epub', domParserCtor);
+
+    expect(article.textContent).toContain('Direct outer div text');
+    const occurrences = article.textContent.split('zqxwv-7342').length - 1;
+    expect(occurrences).toBe(1);
+  });
 });
 
 describe('createArticleFromEpub', () => {
