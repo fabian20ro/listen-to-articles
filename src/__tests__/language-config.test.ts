@@ -7,6 +7,7 @@ import {
   isLanguage,
   DEFAULT_LANGUAGE,
   DEFAULT_TRANSLATION_TARGET,
+  getLanguageLabel,
 } from '../lib/language-config.js';
 
 // ── SUPPORTED_LANGUAGES ─────────────────────────────────────────────
@@ -160,6 +161,29 @@ describe('isLanguage', () => {
   it('returns false for region-tagged codes (e.g. "en-US")', () => {
     expect(isLanguage('en-US')).toBe(false);
     expect(isLanguage('ro-RO')).toBe(false);
+  });
+});
+
+// ── getLanguageLabel ────────────────────────────────────────────────
+
+describe('getLanguageLabel', () => {
+  it('returns "English" for English', () => {
+    expect(getLanguageLabel('en')).toBe('English');
+  });
+
+  it('returns "Romanian" for Romanian', () => {
+    expect(getLanguageLabel('ro')).toBe('Romanian');
+  });
+
+  // Every supported language must have a human-readable label: a non-empty
+  // string that differs from the raw language code.
+  it('returns a non-empty label differing from the raw code for every supported language', () => {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      const label = getLanguageLabel(lang);
+      expect(typeof label, `getLanguageLabel(${lang})`).toBe('string');
+      expect(label.length > 0, `getLanguageLabel(${lang})`).toBeTruthy();
+      expect(label !== lang, `getLanguageLabel(${lang})`).toBe(true);
+    }
   });
 });
 

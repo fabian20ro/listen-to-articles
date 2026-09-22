@@ -53,7 +53,7 @@ describe('update-precache', () => {
       ]);
 
       const rendered = renderServiceWorker(
-        "const SW_VERSION = '2026.04.11.01';\nconst PRECACHE = [\n  './old.js',\n];\n",
+        "const SW_VERSION = '2026.04.11.01';\nconst PRECACHE = [\n  './old.js',\n];\n// manual: bump SW_VERSION on cache changes\n",
         ['./', ...entries],
       );
 
@@ -61,6 +61,10 @@ describe('update-precache', () => {
       expect(rendered).toContain("'./assets/main.js',");
       expect(rendered).toContain("'./assets/main.css',");
       expect(rendered).not.toContain("./old.js");
+      // renderServiceWorker only rewrites the PRECACHE block: manual content
+      // before and after it must survive byte-for-byte.
+      expect(rendered).toContain("const SW_VERSION = '2026.04.11.01';\n");
+      expect(rendered).toContain("// manual: bump SW_VERSION on cache changes\n");
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }

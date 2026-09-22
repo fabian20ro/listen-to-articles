@@ -495,6 +495,21 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.paragraphs.join(' ')).toContain('Second sentence');
   });
 
+  it('should keep the original single block when sentence splitting yields no qualifying fragments (regression: fallback-to-block branch untested)', async () => {
+    // One long block that passes MIN_PARAGRAPH_LENGTH, but every sentence fragment is below it.
+    const shortSentences = 'Alpha. Beta. Gamma. Delta. Eps.'; // 31 chars; each fragment < 20
+    setupMockPdf(1, {}, () => [
+      { str: shortSentences, transform: [1, 0, 0, 1, 0, 700], height: 12 },
+    ]);
+
+    const buffer = new ArrayBuffer(1024);
+    const result = await parsePdfFromArrayBuffer(buffer, 'short-sentences.pdf');
+
+    expect(result.paragraphs).toHaveLength(1);
+    expect(result.paragraphs[0]).toBe(shortSentences);
+    expect(result.title).toBe('short-sentences'); // filename fallback when no metadata
+  });
+
   it('should use metadata.toJSON() as fallback for title/author when info is absent (regression: metadata.toJSON path untested)', async () => {
     setupMockPdf(1, {}, (pageNum: number) => [
       { str: 'Metadata from JSON test content.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
