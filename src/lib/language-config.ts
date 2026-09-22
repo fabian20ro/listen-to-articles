@@ -14,6 +14,17 @@ export const LANG_TTS_CODES: Record<Language, string> = {
   ro: 'ro',
 };
 
+/** Human-readable display names for UI elements (settings, status bar). */
+export const LANG_LABELS: Record<Language, string> = {
+  en: 'English',
+  ro: 'Romanian',
+};
+
+/** Human-readable display name for a language, e.g. "English". */
+export function getLanguageLabel(lang: Language): string {
+  return LANG_LABELS[lang];
+}
+
 /** Shorter code for translation/audio APIs (no region subtag). */
 export function langToCode(lang: Language): string {
   const ttsCode = LANG_TTS_CODES[lang];
