@@ -148,6 +148,11 @@ describe('extractTitleFromMarkdown', () => {
     expect(extractTitleFromMarkdown(markdown)).toBe('');
   });
 
+  it('returns empty string for a single-line H2 heading with content', () => {
+    const markdown = '## Heading with Content';
+    expect(extractTitleFromMarkdown(markdown)).toBe('');
+  });
+
   it('strips H1 prefix and trims whitespace from title', () => {
     const markdown = '#   My Title With Spaces   \n\nBody content here.';
     expect(extractTitleFromMarkdown(markdown)).toBe('My Title With Spaces');
