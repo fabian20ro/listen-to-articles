@@ -20,12 +20,14 @@ function mockServiceWorkerEnvironment() {
 
   const register = vi.fn(async () => registration);
 
+  const removeEventListener = vi.fn();
+
   const serviceWorker = {
     register,
     addEventListener: vi.fn((name: string, cb: EventListener) => {
       listeners[name] = cb;
     }),
-    removeEventListener: vi.fn(),
+    removeEventListener,
   };
 
   Object.defineProperty(navigator, 'serviceWorker', {
@@ -33,7 +35,7 @@ function mockServiceWorkerEnvironment() {
     configurable: true,
   });
 
-  return { listeners, register, update };
+  return { listeners, register, update, removeEventListener };
 }
 
 function mockCacheStorage() {
@@ -428,5 +430,19 @@ describe('PwaUpdateManager', () => {
     document.dispatchEvent(new Event('visibilitychange'));
 
     expect(sw.update).toHaveBeenCalledTimes(1); // only init call
+  });
+
+  it('dispose removes controllerchange and visibilitychange listeners', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const removeSpy = vi.spyOn(document, 'removeEventListener');
+
+    const manager = new PwaUpdateManager();
+    await manager.init('sw.js');
+
+    manager.dispose();
+
+    expect(sw.removeEventListener).toHaveBeenCalledWith('controllerchange', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
   });
 });
