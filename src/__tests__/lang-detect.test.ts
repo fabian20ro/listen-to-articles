@@ -274,6 +274,12 @@ describe('detectLangFromUrl', () => {
     expect(detectLangFromUrl('')).toBe('');
   });
 
+  it('returns empty when the URL is not parseable', () => {
+    // new URL() throws on scheme-less / malformed input; the catch path
+    // must fall back to '' so callers keep the empty-signal contract.
+    expect(detectLangFromUrl('not a valid url')).toBe('');
+  });
+
   it('returns empty for unknown TLD', () => {
     expect(detectLangFromUrl('https://example.xyz')).toBe('');
   });

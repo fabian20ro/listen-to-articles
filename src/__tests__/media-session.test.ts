@@ -63,6 +63,16 @@ describe('MediaSessionController', () => {
     expect(playSpy).toHaveBeenCalled();
   });
 
+  it('should set mediaSession playbackState to playing on activate and none on deactivate', () => {
+    expect(navigator.mediaSession.playbackState).toBe('none');
+
+    controller.activate('Test Title');
+    expect(navigator.mediaSession.playbackState).toBe('playing');
+
+    controller.deactivate();
+    expect(navigator.mediaSession.playbackState).toBe('none');
+  });
+
   it('should be idempotent — double activate does not re-play audio or restart keep-alive timer', async () => {
     controller.activate('Test Title');
     await Promise.resolve(); // let play() promise settle
