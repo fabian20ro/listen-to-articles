@@ -202,6 +202,24 @@ describe('pickTranscriptTrack', () => {
       'Transcript metadata is not available for this video.',
     );
   });
+
+  it('returns the first track when multiple captionTracks are present (nested)', () => {
+    const firstTrack = { baseUrl: 'https://first.example/track', languageCode: 'en' };
+    const secondTrack = { baseUrl: 'https://second.example/track', languageCode: 'fr' };
+    const playerJson = {
+      captions: { playerCaptionsTracklistRenderer: { captionTracks: [firstTrack, secondTrack] } },
+    };
+    expect(pickTranscriptTrack(playerJson)).toBe(firstTrack);
+  });
+
+  it('returns the first track when multiple captionTracks are present (top-level fallback)', () => {
+    const firstTrack = { baseUrl: 'https://first.example/track', languageCode: 'en' };
+    const secondTrack = { baseUrl: 'https://second.example/track', languageCode: 'fr' };
+    const playerJson = {
+      playerCaptionsTracklistRenderer: { captionTracks: [firstTrack, secondTrack] },
+    };
+    expect(pickTranscriptTrack(playerJson)).toBe(firstTrack);
+  });
 });
 
 describe('extractArticleFromYoutube', () => {

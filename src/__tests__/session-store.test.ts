@@ -252,6 +252,15 @@ describe('session-store', () => {
       expect(savedAt === savedAt && savedAt !== Infinity && savedAt !== -Infinity).toBe(true);
     });
 
+    it('replaces a previously saved article when saving again', () => {
+      saveLastArticle(makeArticle({ title: 'First Article' }));
+      saveLastArticle(makeArticle({ title: 'Second Article' }));
+
+      const stored = JSON.parse(localStorage.getItem('article-reader-last-article') ?? '{}');
+      expect(stored.article.title).toBe('Second Article');
+      expect(loadLastArticle()?.article.title).toBe('Second Article');
+    });
+
     it('propagates storage write errors (no try/catch on setItem)', () => {
       const throwingStorage = {
         getItem: (_key: string) => null,
