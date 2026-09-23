@@ -436,13 +436,17 @@ describe('PwaUpdateManager', () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
     const removeSpy = vi.spyOn(document, 'removeEventListener');
+    const addSpy = vi.spyOn(document, 'addEventListener');
 
     const manager = new PwaUpdateManager();
     await manager.init('sw.js');
 
     manager.dispose();
 
-    expect(sw.removeEventListener).toHaveBeenCalledWith('controllerchange', expect.any(Function));
-    expect(removeSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    const visibilityCallback = addSpy.mock.calls.find(([name]) => name === 'visibilitychange')?.[1];
+    expect(visibilityCallback).toBeTypeOf('function');
+    expect(sw.listeners.controllerchange).toBeTypeOf('function');
+    expect(sw.removeEventListener).toHaveBeenCalledWith('controllerchange', sw.listeners.controllerchange);
+    expect(removeSpy).toHaveBeenCalledWith('visibilitychange', visibilityCallback);
   });
 });
