@@ -3,6 +3,7 @@ import type { Language } from '../lib/language-config.js';
 import {
   SUPPORTED_LANGUAGES,
   LANG_TTS_CODES,
+  LANG_LABELS,
   langToCode,
   isLanguage,
   DEFAULT_LANGUAGE,
@@ -184,6 +185,32 @@ describe('getLanguageLabel', () => {
       expect(label.length > 0, `getLanguageLabel(${lang})`).toBeTruthy();
       expect(label !== lang, `getLanguageLabel(${lang})`).toBe(true);
     }
+  });
+});
+
+// ── LANG_LABELS maintenance contract ─────────────────────────────────
+
+describe('LANG_LABELS', () => {
+  // Forward: every supported language must have a human-readable label — a
+  // non-empty string that differs from the raw code (so the UI cannot
+  // display the bare code as a display name).
+  it('has a label for every supported language', () => {
+    for (const lang of SUPPORTED_LANGUAGES) {
+      const label = LANG_LABELS[lang];
+      expect(typeof label, `LANG_LABELS[${lang}]`).toBe('string');
+      expect(label.length > 0, `LANG_LABELS[${lang}]`).toBeTruthy();
+      expect(label !== lang, `LANG_LABELS[${lang}]`).toBe(true);
+    }
+  });
+
+  // Backward: no orphan keys — every LANG_LABELS key must be a supported
+  // language. Catches a label added for a language removed from
+  // SUPPORTED_LANGUAGES (the getLanguageLabel tests only reach keys that are
+  // still supported).
+  it('every label entry maps to a supported language', () => {
+    const labelKeys = Object.keys(LANG_LABELS) as Language[];
+    const orphans = labelKeys.filter((lang) => !SUPPORTED_LANGUAGES.includes(lang));
+    expect(orphans).toEqual([]);
   });
 });
 
