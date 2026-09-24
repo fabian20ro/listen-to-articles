@@ -158,6 +158,42 @@ describe('ArticleController', () => {
     clickSpy.mockRestore();
   });
 
+  it('falls back to article.md when the title sanitizes to an empty filename', () => {
+    const refs = makeRefs();
+    const tts = { stop: vi.fn() } as any;
+    const controller = new ArticleController({
+      refs,
+      tts,
+      proxyBase: '',
+      initialLangOverride: 'auto',
+    });
+
+    // A punctuation-only title sanitizes to an empty base name.
+    (controller as any).currentArticle = {
+      title: '!!!',
+      textContent: 'Body text.',
+      markdown: 'Body text.',
+    } as any;
+
+    vi.stubGlobal('URL', {
+      createObjectURL: () => 'blob:mock-url',
+      revokeObjectURL: vi.fn(),
+    });
+
+    let downloadName = '';
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        downloadName = this.download;
+      });
+
+    (controller as any).downloadMarkdown();
+
+    expect(downloadName).toBe('article.md');
+
+    clickSpy.mockRestore();
+  });
+
   it('loads a shared-url article via handleInitialSharedUrl', async () => {
     const sharedArticle = {
       title: 'Shared Article',
