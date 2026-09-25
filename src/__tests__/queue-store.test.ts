@@ -320,6 +320,16 @@ describe('queue-store', () => {
       const result = removeFromQueue([a], 'nonexistent');
       expect(result).toHaveLength(1);
     });
+
+    it('persists the reduced queue to localStorage after removal', () => {
+      const a = makeItem({ id: 'a' });
+      const b = makeItem({ id: 'b', url: 'https://other.com' });
+      removeFromQueue([a, b], 'a');
+
+      const stored = JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]');
+      expect(stored).toHaveLength(1);
+      expect(stored[0].id).toBe('b');
+    });
   });
 
   describe('clearQueue', () => {

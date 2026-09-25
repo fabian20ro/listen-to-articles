@@ -83,6 +83,10 @@ describe('sentence-splitter', () => {
        const text = 'One, two, three';
        expect(splitLongSentence(text, 5)).toEqual(['One,', 'two,', 'three']);
     });
+    it('should prefer semicolons over commas when multiple delimiters are present', () => {
+      const text = 'One two; three, four five';
+      expect(splitLongSentence(text, 10)).toEqual(['One two;', 'three, four five']);
+    });
     it('should split basic sentences', () => {
       // Using long enough sentences to avoid merging during testing
       const text = 'This is a much longer first sentence with enough words. This is another long sentence with enough words.';
