@@ -453,6 +453,35 @@ describe('TTSEngine', () => {
     expect(engine.state.currentParagraph).toBe(0);
   });
 
+  it('exposes rate-aware elapsedTime and duration in state', () => {
+    const paragraphs = [
+      'First sentence that is long enough to stand on its own and read aloud.',
+      'Second sentence is also long enough to stand alone clearly enough.',
+    ];
+    const engine = createEngine();
+    engine.loadArticle(paragraphs, 'en');
+    engine.setRate(1.5);
+    engine.play();
+
+    const expected = computeTimeline(
+      paragraphs.map((p) => splitSentences(p.replace(/^#{1,6}\s+/, ''))),
+      0,
+      0,
+      1.5,
+    );
+
+    expect(engine.state.elapsedTime).toBe(expected.position);
+    expect(engine.state.duration).toBe(expected.duration);
+    // Non-1x rate must reflect the actual rate, not a hardcoded 1.0.
+    const oneX = computeTimeline(
+      paragraphs.map((p) => splitSentences(p.replace(/^#{1,6}\s+/, ''))),
+      0,
+      0,
+      1.0,
+    );
+    expect(engine.state.duration).not.toBe(oneX.duration);
+  });
+
   it('strips markdown headers before sentence-splitting on loadArticle()', () => {
     const engine = createEngine();
     engine.loadArticle(['## Introduction\nThis is the body text. Another sentence here.'], 'en');

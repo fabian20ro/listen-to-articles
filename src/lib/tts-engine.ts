@@ -28,6 +28,10 @@ export interface TTSState {
   currentParagraph: number;
   currentSentence: number;
   totalParagraphs: number;
+  /** Estimated elapsed listening time (seconds) at the current rate. */
+  elapsedTime: number;
+  /** Estimated total listening time (seconds) at the current rate. */
+  duration: number;
 }
 
 export interface TTSCallbacks {
@@ -473,12 +477,20 @@ export class TTSEngine {
   }
 
   get state(): TTSState {
+    const { duration, position } = computeTimeline(
+      this.paragraphs,
+      this.paraIdx,
+      this.sentIdx,
+      this.rate,
+    );
     return {
       isPlaying: this._isPlaying,
       isPaused: this._isPaused,
       currentParagraph: this.paraIdx,
       currentSentence: this.sentIdx,
       totalParagraphs: this.paragraphs.length,
+      elapsedTime: position,
+      duration,
     };
   }
 
