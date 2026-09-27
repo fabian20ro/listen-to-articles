@@ -148,4 +148,33 @@ describe('QueueController', () => {
       vi.useRealTimers();
     }
   });
+
+  it('stops playback and resets the current index when the playing item is removed', () => {
+    localStorage.setItem('article-reader-queue', JSON.stringify([
+      item('a'), item('b'),
+    ]));
+    const stop = vi.fn();
+    const onQueueChange = vi.fn();
+    const controller = new QueueController({
+      articleController: { loadArticleFromUrl: vi.fn() } as never,
+      tts: { play: vi.fn(), stop } as never,
+      callbacks: {
+        onQueueChange,
+        onAutoAdvanceCountdown: vi.fn(),
+        onAutoAdvanceCancelled: vi.fn(),
+        onError: vi.fn(),
+      },
+    });
+
+    controller.syncCurrentById('a');
+    controller.removeItem('a');
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(controller.getCurrentIndex()).toBe(-1);
+    expect(controller.getItems()).toHaveLength(1);
+    expect(onQueueChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'b' })]),
+      -1,
+    );
+  });
 });
