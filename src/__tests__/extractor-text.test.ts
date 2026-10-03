@@ -127,6 +127,25 @@ describe('createArticleFromText', () => {
     expect(article.paragraphs.some((p) => p.includes('bold word'))).toBe(true);
   });
 
+  it('strips single-asterisk italic markers from body text', () => {
+    const text =
+      'My Article\nThis text contains *italic word* inline and it has enough words to process.';
+    const article = createArticleFromText(text);
+
+    expect(article.textContent).not.toContain('*');
+    expect(article.paragraphs.some((p) => p.includes('italic word'))).toBe(true);
+  });
+
+  it('strips both bold and italic markers from body text', () => {
+    const text =
+      'My Article\nThis text has **bold word** and *italic word* together with enough words to process.';
+    const article = createArticleFromText(text);
+
+    expect(article.textContent).not.toContain('*');
+    expect(article.paragraphs.some((p) => p.includes('bold word'))).toBe(true);
+    expect(article.paragraphs.some((p) => p.includes('italic word'))).toBe(true);
+  });
+
   it('strips markdown heading markers from body lines', () => {
     const text =
       'My Article\n# My Heading Title Here\nThis body has enough words to be processed by the reader correctly.';
@@ -146,6 +165,20 @@ describe('createArticleFromText', () => {
     expect(
       article.paragraphs.some((p) => /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(p)),
     ).toBe(false);
+  });
+
+  it('removes a standalone *** line as a horizontal rule even after italic stripping', () => {
+    // A bare *** line must survive the italic replace (which requires non-asterisk content)
+    // and then be removed as a horizontal rule, so it never leaks into a paragraph.
+    const text =
+      'My Article\nFirst paragraph with enough words to count as valid body content.\n***\nSecond paragraph also has enough words to process correctly.';
+    const article = createArticleFromText(text);
+
+    expect(article.paragraphs).toHaveLength(2);
+    expect(
+      article.paragraphs.some((p) => /^\s*\*{3,}\s*$/.test(p)),
+    ).toBe(false);
+    expect(article.textContent).not.toContain('***');
   });
 
   it('preserves link text and strips image markers when mixed with formatting', () => {
