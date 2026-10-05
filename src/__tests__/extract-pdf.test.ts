@@ -124,6 +124,14 @@ describe('extractParagraphsFromTextItems', () => {
     expect(extractParagraphsFromTextItems(items)).toEqual(['Para 1', 'Para 2']);
   });
 
+  it('should apply the 12pt default height to line spacing when a line has zero height (regression: raw zero height collapses the threshold to 0)', () => {
+    const items = [
+      { str: 'Line one with words', transform: [1, 0, 0, 1, 0, 700], height: 0 }, // height 0 -> default 12 -> threshold 27
+      { str: 'line two with words', transform: [1, 0, 0, 1, 0, 675], height: 12 } // gap 25 < 27 -> same paragraph
+    ];
+    expect(extractParagraphsFromTextItems(items)).toEqual(['Line one with words line two with words']);
+  });
+
   it('should handle empty strings in items', () => {
     const items = [
       { str: 'Para 1', transform: [1, 0, 0, 1, 0, 700], height: 12 },
