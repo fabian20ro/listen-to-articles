@@ -959,6 +959,62 @@ describe('createArticleFromEpub', () => {
     expect(article.title).toBe('File Path Book');
     expect(article.textContent).toContain('long enough to pass');
   });
+
+  it('uses filename-derived fallback title when OPF has no <title> (File-based path)', async () => {
+    const zip = new JSZip();
+
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    // Empty <metadata> (no <dc:title>) — createArticleFromEpub must fall back to
+    // the filename with the .epub extension stripped.
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata dc:language="en"></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>A paragraph long enough to pass the extraction filter for the file fallback title test.</p></body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const fileLike = {
+      name: 'file-fallback.epub',
+      get size(): number { return buf.byteLength; },
+      async arrayBuffer() { return buf; },
+    };
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    const article = await createArticleFromEpub(fileLike as any, domParserCtor);
+
+    // file.name.replace(/\.epub$/i, '') → 'file-fallback'; must not be the raw
+    // filename (with .epub) nor the 'EPUB Document' constant.
+    expect(article.title).toBe('file-fallback');
+  });
 });
 
 describe('extractOpfPath', () => {
