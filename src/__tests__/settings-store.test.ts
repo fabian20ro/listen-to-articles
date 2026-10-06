@@ -226,6 +226,19 @@ describe('settings-store', () => {
     },
   );
 
+  it('writes back serialized defaults when the stored value parses to null', () => {
+    localStorage.setItem(
+      'articlevoice-settings',
+      JSON.stringify(null),
+    );
+
+    loadSettings(defaults);
+
+    expect(localStorage.getItem('articlevoice-settings')).toBe(
+      JSON.stringify(createDefaultSettings(defaults)),
+    );
+  });
+
   it('ignores extraneous keys stored alongside valid data', () => {
     localStorage.setItem(
       'articlevoice-settings',
