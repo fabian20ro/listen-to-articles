@@ -198,6 +198,13 @@ describe('MediaSessionController', () => {
     const handler = mockMediaSession.actionHandlers.get('play');
     handler?.();
     expect(actions.play).toHaveBeenCalled();
+
+    // Each registered handler must dispatch to its own action, not a sibling:
+    // a miswired `stop` handler still satisfies the 8-count assertion above.
+    const stopHandler = mockMediaSession.actionHandlers.get('stop');
+    stopHandler?.();
+    expect(actions.stop).toHaveBeenCalled();
+    expect(actions.pause).not.toHaveBeenCalled();
   });
 
   it('should invoke seekto action only when seekTime is provided', () => {

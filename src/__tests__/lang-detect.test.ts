@@ -489,4 +489,13 @@ describe('getSourceLang', () => {
   it('returns auto when URL is empty', () => {
     expect(getSourceLang('', '')).toBe('auto');
   });
+
+  it('treats htmlLang "und" as no signal, falling through to URL TLD', () => {
+    // BCP 47 no-language code: detectLangFromHtml("und") → "" so the URL
+    // TLD must win; returning "und" would send an invalid source language
+    // to the translation API.
+    expect(getSourceLang('und', 'https://digi24.ro/stiri')).toBe('ro');
+    // No URL signal either → auto.
+    expect(getSourceLang('und', 'https://example.com/article')).toBe('auto');
+  });
 });

@@ -296,6 +296,30 @@ describe('PwaUpdateManager', () => {
     expect(reloadSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('forceRefresh skips SW update and clears caches when registration is missing', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    const cacheStorage = mockCacheStorage();
+    const onStatus = vi.fn();
+    const reloadSpy = vi.fn();
+
+    sw.register.mockRejectedValue(new Error('sw-fail'));
+
+    const manager = new PwaUpdateManager({ onStatus, reload: reloadSpy });
+    await manager.init('sw.js');
+    onStatus.mockClear();
+
+    const result = await manager.forceRefresh();
+
+    expect(result).toBe('reloaded');
+    expect(sw.update).not.toHaveBeenCalled();
+    expect(cacheStorage.keys).toHaveBeenCalledTimes(1);
+    expect(cacheStorage.del).toHaveBeenCalledWith('cache-a');
+    expect(cacheStorage.del).toHaveBeenCalledWith('cache-b');
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(onStatus).toHaveBeenNthCalledWith(1, 'Checking...');
+    expect(onStatus).toHaveBeenNthCalledWith(2, 'Reloading...');
+  });
+
   it('deferred reload invokes onUpdateReady callback', async () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();

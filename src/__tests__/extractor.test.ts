@@ -683,6 +683,22 @@ describe('extractArticle', () => {
       'Direct YouTube extraction is only supported through the worker parse API.',
     );
   });
+
+  it('parses JSON response when content-type is application/json', async () => {
+    const jsonBody = JSON.stringify({
+      title: 'JSON Article',
+      content: 'Paragraph text with enough words to be valid.',
+      siteName: 'JSON Site',
+      paragraphs: ['Paragraph text with enough words to be valid.'],
+      wordCount: 8,
+    });
+    mockFetch(jsonBody, 200, { 'content-type': 'application/json' });
+
+    const article = await extractArticle(ARTICLE_URL, PROXY);
+
+    expect(article.title).toBe('JSON Article');
+    expect(article.siteName).toBe('JSON Site');
+  });
 });
 
 describe('extractYoutubeVideoId', () => {

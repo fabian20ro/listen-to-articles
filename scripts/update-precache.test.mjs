@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
-import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -309,6 +309,29 @@ describe('update-precache', () => {
       unlinkSync(join(tempRoot, 'icons', 'icon-192.png'));
       const { syncStableRuntimeAssets } = await fixtureRuntime(tempRoot);
       expect(() => syncStableRuntimeAssets()).toThrow(/ENOENT|no such file/i);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('syncStableRuntimeAssets tolerates an absent dist/assets directory', async () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-no-assets-'));
+
+    try {
+      // writeRuntimeSources builds a complete runtime but no dist/assets/,
+      // so the stale-cleanup branch must be skipped by its existsSync guard.
+      writeRuntimeSources(tempRoot);
+      const distDir = join(tempRoot, 'dist');
+
+      const { syncStableRuntimeAssets } = await fixtureRuntime(tempRoot);
+      expect(() => syncStableRuntimeAssets()).not.toThrow();
+
+      // The stable outputs still land even though there were no assets to clean.
+      expect(readFileSync(join(distDir, 'manifest.webmanifest'), 'utf8')).toContain('"src": "./icons/icon-192.png"');
+      expect(readFileSync(join(distDir, 'icons', 'icon-192.png'), 'utf8')).toBe('PNG_192');
+      expect(readFileSync(join(distDir, 'vendor', 'pdfjs', 'pdf.worker.min.mjs'), 'utf8')).toBe('// pdf worker');
+      // The guard skips cleanup, so dist/assets/ must never be created.
+      expect(existsSync(join(distDir, 'assets'))).toBe(false);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }
