@@ -4,6 +4,7 @@ import {
   extractYoutubeVideoId,
   pickTranscriptTrack,
 } from '../lib/extractors/extract-youtube';
+import { UpstreamResponseError } from '../lib/extractors/types';
 
 describe('extractYoutubeVideoId bug reproduction', () => {
   it('extracts ID even with trailing slash', () => {
@@ -255,5 +256,24 @@ describe('extractArticleFromYoutube', () => {
     }
     expect(caught).toBeInstanceOf(Error);
     expect((caught as Error).message).toBe('YouTube extraction failed: network down');
+  });
+
+  it('re-throws the 429 UpstreamResponseError unwrapped (not wrapped with the extraction-failed prefix)', async () => {
+    // Both the direct Player API call and the watch-page fallback return 429,
+    // so no fallback recovery succeeds and the UpstreamResponseError escapes
+    // to the outer catch. Line 148 re-throws it as-is (instanceof guard)
+    // instead of wrapping it the way line 150 handles every other error.
+    const fetcher: typeof fetch = () =>
+      Promise.resolve(new Response('Too Many Requests', { status: 429 }));
+    let caught: unknown;
+    try {
+      await extractArticleFromYoutube('https://www.youtube.com/watch?v=abc12345678', fetcher);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(UpstreamResponseError);
+    expect((caught as UpstreamResponseError).status).toBe(429);
+    expect((caught as Error).message).toContain('rate limit');
+    expect((caught as Error).message).not.toContain('YouTube extraction failed');
   });
 });

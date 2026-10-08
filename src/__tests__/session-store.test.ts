@@ -143,6 +143,16 @@ describe('session-store', () => {
       expect(localStorage.getItem('article-reader-last-article')).toBeNull();
     });
 
+    it('removes articles where the markdown field is not a string before returning null', () => {
+      localStorage.setItem(
+        'article-reader-last-article',
+        JSON.stringify({ article: { ...makeArticle(), markdown: 42 }, savedAt: 123456789 }),
+      );
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBeNull();
+    });
+
     it('removes articles where a numeric field is a string before returning null', () => {
       localStorage.setItem(
         'article-reader-last-article',
