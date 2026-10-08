@@ -226,6 +226,13 @@ describe('DEFAULT_TRANSLATION_TARGET', () => {
   it('is a supported language', () => {
     expect(isLanguage(DEFAULT_TRANSLATION_TARGET)).toBe(true);
   });
+
+  // Pin the concrete default: the translation target must be English even if
+  // SUPPORTED_LANGUAGES is reordered (the mirror test above cannot catch that —
+  // it tracks DEFAULT_LANGUAGE, which moves with the list).
+  it('defaults to English', () => {
+    expect(DEFAULT_TRANSLATION_TARGET).toBe('en');
+  });
 });
 
 // ── LANG_TTS_CODES maintenance contract ───────────────────────────────
