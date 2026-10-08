@@ -1124,4 +1124,31 @@ describe('ArticleController', () => {
     );
     expect(controller.getCurrentArticle()).toEqual(article);
   });
+
+  it('copies the current article markdown to the clipboard and shows copied feedback', async () => {
+    const refs = makeRefs();
+    const tts = { stop: vi.fn(), loadArticle: vi.fn(), setLang: vi.fn() } as any;
+    const controller = new ArticleController({
+      refs,
+      tts,
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+    });
+
+    (controller as any).currentArticle = {
+      title: 'My Great Article!',
+      textContent: 'Body text.',
+      markdown: '# My Great Article!\n\nBody text.',
+    } as any;
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { onLine: true, clipboard: { writeText } });
+
+    await (controller as any).copyMarkdown();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledWith('# My Great Article!\n\nBody text.');
+    expect(refs.copyMdBtn.textContent).toBe('Copied!');
+  });
 });
