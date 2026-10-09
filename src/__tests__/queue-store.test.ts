@@ -392,6 +392,12 @@ describe('queue-store', () => {
       const item = createQueueItem(article);
       expect(item.siteName).toBe('img onerror="x" src="y"Site');
     });
+
+    it('truncates long siteName to 100 chars', () => {
+      const article = makeArticle({ siteName: 'S'.repeat(150) });
+      const item = createQueueItem(article);
+      expect(item.siteName).toBe('S'.repeat(100));
+    });
   });
 
   describe('reorderQueue', () => {
