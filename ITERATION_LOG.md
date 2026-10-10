@@ -1240,3 +1240,11 @@ Each entry should follow this structure:
 **Outcome:** Documented fallback now reachable; nested precedence and error messages unchanged. No cache-policy, app-shell wiring, dependency, or external-service changes.
 **Insight:** Validate the resolved fallback value, not presence of the preferred source's wrapper.
 **Promoted to Lessons Learned:** Yes
+
+### [2026-10-10] Match the actual Backtick keyboard character
+
+**Context:** Integrated shortcut and its test used `key: 'Backquote'`; Backquote is the physical `code`, not the typed backtick `key`. Approved history preserved; repair on current Compound branch under native execution ownership and integration fence.
+**What happened:** Corrected the existing handler and input fixture; retained DOM/ARIA/persistence, unrelated-key and teardown assertions. Bumped SW_VERSION for changed app-shell behavior. No hotkey framework, dependency or CSS changes.
+**Verification:** Original module with platform-valid input: 3 pass/1 fail; one-line correction: 4 pass. Full disposable worker check: lint/typecheck, 1044 tests/29 files and build pass. Real Chrome keyboard gesture: dark→light, selected button and stored setting match; unrelated key and reload preserve light.
+**Insight:** A technical recipe repeated in code and its fixture is not independent behavioral evidence.
+**Promoted to Lessons Learned:** No

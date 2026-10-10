@@ -86,10 +86,10 @@ describe('shipped theme controls', () => {
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('cycles the theme with the Backquote key, persists it, and cleans up', () => {
+  it('cycles the theme with the Backtick character, persists it, and cleans up', () => {
     bind();
     expect(document.documentElement.dataset.theme).toBe('dark');
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backquote' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '`', code: 'Backquote' }));
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(button('light').getAttribute('aria-pressed')).toBe('true');
     expect(button('dark').getAttribute('aria-pressed')).toBe('false');
@@ -98,7 +98,7 @@ describe('shipped theme controls', () => {
     expect(document.documentElement.dataset.theme).toBe('light');
     expect(button('light').getAttribute('aria-pressed')).toBe('true');
     cleanup?.();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backquote' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '`', code: 'Backquote' }));
     expect(document.documentElement.dataset.theme).toBe('light');
   });
 });
