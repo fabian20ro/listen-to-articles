@@ -23,7 +23,7 @@ export function bindThemeControls(
   darkScheme.addEventListener('change', followSystem);
 
   const onKey = (event: KeyboardEvent) => {
-    if (event.key !== 'Backquote') return;
+    if (event.key !== '`') return;
     const index = THEMES.indexOf(settings.theme);
     settings.theme = THEMES[(index + 1) % THEMES.length];
     applyTheme();
