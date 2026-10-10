@@ -1,4 +1,4 @@
-import { saveSettings, type AppSettings, type Theme } from './settings-store.js';
+import { saveSettings, THEMES, type AppSettings, type Theme } from './settings-store.js';
 import { updateSegmentButtons } from './ui-helpers.js';
 
 /** Bind the theme preference separately from the resolved OS color scheme. */
@@ -22,6 +22,15 @@ export function bindThemeControls(
   };
   darkScheme.addEventListener('change', followSystem);
 
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key !== 'Backquote') return;
+    const index = THEMES.indexOf(settings.theme);
+    settings.theme = THEMES[(index + 1) % THEMES.length];
+    applyTheme();
+    saveSettings(settings);
+  };
+  document.addEventListener('keydown', onKey);
+
   const handlers = Array.from(buttons, (button) => {
     const select = () => {
       settings.theme = button.dataset.value as Theme;
@@ -35,6 +44,7 @@ export function bindThemeControls(
 
   return () => {
     darkScheme.removeEventListener('change', followSystem);
+    document.removeEventListener('keydown', onKey);
     handlers.forEach((remove) => remove());
   };
 }
