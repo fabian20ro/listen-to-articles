@@ -130,6 +130,18 @@ describe('sentence-splitter', () => {
       }
     });
 
+    it('should split a single overlong unpunctuated sentence through the public API', () => {
+      // One raw piece of 249 chars with no .!? boundaries — the only case in this file
+      // where a splitSentences piece exceeds MAX_UTTERANCE_LENGTH, so the long-split
+      // branch in the public API actually fires (merge chains cap at 200, so merged
+      // pieces never exceed it and the chain test above never reaches this branch).
+      const text = 'word '.repeat(50).trim();
+      expect(text.length).toBeGreaterThan(MAX_UTTERANCE_LENGTH);
+      const result = splitSentences(text);
+      // Greedy 'word ' packing: 40 words = 199 chars fits; adding the 41st (204) exceeds 200.
+      expect(result).toEqual(['word '.repeat(40).trim(), 'word '.repeat(10).trim()]);
+    });
+
     it('should split on em-dash delimiters', () => {
       const text = 'Before — after';
       // Text is short so no splitting needed unless below threshold. Test via long sentence.

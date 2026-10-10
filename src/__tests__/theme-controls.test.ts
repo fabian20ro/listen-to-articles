@@ -85,4 +85,20 @@ describe('shipped theme controls', () => {
     media.dispatchEvent(new Event('change'));
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
+
+  it('cycles the theme with the Backquote key, persists it, and cleans up', () => {
+    bind();
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backquote' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(button('light').getAttribute('aria-pressed')).toBe('true');
+    expect(button('dark').getAttribute('aria-pressed')).toBe('false');
+    expect(loadSettings(defaults).theme).toBe('light');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+    expect(button('light').getAttribute('aria-pressed')).toBe('true');
+    cleanup?.();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backquote' }));
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
 });
