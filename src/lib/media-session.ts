@@ -115,8 +115,11 @@ export class MediaSessionController {
    * Start silent audio loop and set media session to "playing".
    * Must be called from a user-gesture call stack (click handler)
    * so the browser allows audio.play().
+   *
+   * Optional artist distinguishes the article source (e.g. domain) on the
+   * Android lock-screen notification; without it the title is reused.
    */
-  activate(title?: string): void {
+  activate(title?: string, artist?: string): void {
     // Idempotent: skip if already active with audio in DOM.
     if (this._active && this.audio) return;
 
@@ -127,7 +130,7 @@ export class MediaSessionController {
     Promise.resolve(this.audio.play()).catch((err) => {
       log.warn('Silent audio play failed on activate', err);
     });
-    this.updateMetadata(title, title);
+    this.updateMetadata(title, artist ?? title);
     this.setPlaybackState('playing');
     this.startKeepAlive();
   }
