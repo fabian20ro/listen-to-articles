@@ -100,6 +100,24 @@ describe('MediaSessionController', () => {
     expect(navigator.mediaSession.metadata?.artist).toBe('New Artist');
   });
 
+  it('should set distinct title and artist on activate when both are provided', () => {
+    controller.activate('My Title', 'example.com');
+    expect(navigator.mediaSession.metadata?.title).toBe('My Title');
+    expect(navigator.mediaSession.metadata?.artist).toBe('example.com');
+  });
+
+  it('should reuse title as artist on activate when artist is omitted', () => {
+    controller.activate('My Title');
+    expect(navigator.mediaSession.metadata?.title).toBe('My Title');
+    expect(navigator.mediaSession.metadata?.artist).toBe('My Title');
+  });
+
+  it('should fall back to default metadata on activate with no arguments', () => {
+    controller.activate();
+    expect(navigator.mediaSession.metadata?.title).toBe('Listen to Articles');
+    expect(navigator.mediaSession.metadata?.artist).toBe('Listen to Articles');
+  });
+
   it('should update position state', () => {
     controller.updatePositionState(100, 50, 1);
     expect(navigator.mediaSession.setPositionState).toHaveBeenCalledWith({

@@ -60,6 +60,37 @@ describe('QueueController', () => {
     expect(play).toHaveBeenCalledOnce();
   });
 
+  it('stops at a failed last item without re-entering the queue or playing', async () => {
+    localStorage.setItem('article-reader-queue', JSON.stringify([
+      item('a'), item('b'),
+    ]));
+    const loadArticleFromUrl = vi.fn()
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockRejectedValueOnce(new Error('unavailable'))
+      .mockResolvedValue(undefined);
+    const play = vi.fn();
+    const onError = vi.fn();
+    const controller = new QueueController({
+      articleController: { loadArticleFromUrl } as never,
+      tts: { play, stop: vi.fn() } as never,
+      callbacks: {
+        onQueueChange: vi.fn(),
+        onAutoAdvanceCountdown: vi.fn(),
+        onAutoAdvanceCancelled: vi.fn(),
+        onError,
+      },
+    });
+
+    await controller.playNext();
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(2));
+
+    expect(loadArticleFromUrl).toHaveBeenLastCalledWith('https://example.com/b');
+    expect(onError).toHaveBeenLastCalledWith('Failed to load: b');
+    expect(play).not.toHaveBeenCalled();
+    expect(controller.getCurrentIndex()).toBe(1);
+    expect(controller.isLoadingItem()).toBe(false);
+  });
+
   it('auto-advances to the next item after the end-of-article delay', async () => {
     vi.useFakeTimers();
     try {
