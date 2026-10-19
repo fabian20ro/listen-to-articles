@@ -584,6 +584,26 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.paragraphs[1]).toContain('Second paragraph');
   });
 
+  it('should forward onProgress callbacks from createArticleFromPdf to parsePdfFromArrayBuffer (regression: progress dropped at the file seam)', async () => {
+    setupMockPdf(1, {}, () => [
+      { str: 'Page one full paragraph of content for verification.', transform: [1, 0, 0, 1, 0, 700], height: 12 }
+    ]);
+
+    const buffer = new ArrayBuffer(1024);
+    const fileObj = {
+      name: 'progress-file.pdf',
+      size: 512,
+      async arrayBuffer() { return buffer; },
+    };
+
+    const progressCalls: string[] = [];
+    await createArticleFromPdf(fileObj as any, (msg) => progressCalls.push(msg));
+
+    expect(progressCalls[0]).toBe('Loading PDF...');
+    expect(progressCalls[1]).toBe('Parsing page 1/1...');
+    expect(progressCalls).toHaveLength(2);
+  });
+
   it('should accept a file at exactly MAX_PDF_SIZE boundary without throwing on size guard (regression: boundary not verified)', async () => {
     setupMockPdf(1, {}, () => [
       { str: 'Boundary test content paragraph.', transform: [1, 0, 0, 1, 0, 700], height: 12 },
