@@ -18,16 +18,18 @@ export function getUrlFromParams(): string | null {
 
 /** Try to pull a valid http(s) URL out of an arbitrary string.
  *
- * Only extracts URLs at/near the end of the text (share-text format like
- * "Article Title\nhttps://...").  If the URL is embedded in the middle of
- * long text, returns null so the caller can treat the input as pasted
- * article content.
+ * Extracts URLs at the start or end of the text (share-text formats like
+ * "https://... Read this" or "Article Title\nhttps://...").  If the URL is
+ * embedded in the middle of long text, returns null so the caller can treat
+ * the input as pasted article content.
  */
 export function extractUrl(text: string): string | null {
   const trimmed = text.trim();
 
-  // Direct URL
-  if (isValidArticleUrl(trimmed)) return trimmed;
+  // Direct URL: a single token with no whitespace. new URL() would silently
+  // percent-encode embedded spaces/newlines, so a multi-token string is not
+  // a direct URL and falls through to the start/end extraction below.
+  if (!/\s/.test(trimmed) && isValidArticleUrl(trimmed)) return trimmed;
 
   // URL at the end of the text with a description prefix (≤ 500 chars).
   // Covers the common share-text pattern: "Article Title\nhttps://..."
@@ -37,6 +39,19 @@ export function extractUrl(text: string): string | null {
     const prefix = trimmed.slice(0, endMatch.index!).trim();
     if (prefix.length <= 500) {
       let url = endMatch[0];
+      // Strip trailing punctuation that might have been caught
+      url = url.replace(/[.,!?;:()\[\]{},<>]+$/, '');
+      if (isValidArticleUrl(url)) return url;
+    }
+  }
+
+  // URL at the start of the text with a description suffix (≤ 500 chars).
+  // Covers the common share-text pattern: "https://...\nRead this"
+  const startMatch = trimmed.match(/^(?:https?:\/\/|\/\/)[^\s"'<>]+/i);
+  if (startMatch && isValidArticleUrl(startMatch[0])) {
+    const suffix = trimmed.slice(startMatch[0].length).trim();
+    if (suffix.length <= 500) {
+      let url = startMatch[0];
       // Strip trailing punctuation that might have been caught
       url = url.replace(/[.,!?;:()\[\]{},<>]+$/, '');
       if (isValidArticleUrl(url)) return url;

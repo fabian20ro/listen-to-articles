@@ -124,6 +124,33 @@ describe('extractUrl', () => {
     // The regex matches '//' prefixes, but isValidArticleUrl rejects them.
     expect(extractUrl('//example.com/article')).toBeNull();
   });
+
+  it('extracts a URL at the start of text with short trailing text', () => {
+    expect(extractUrl('https://example.com/article\nCheck out this read')).toBe('https://example.com/article');
+  });
+
+  it('returns a direct URL unchanged (start-of-text case with no suffix)', () => {
+    expect(extractUrl('https://example.com/article')).toBe('https://example.com/article');
+  });
+
+  it('extracts a URL at the start of text with long trailing text (≤500)', () => {
+    const suffix = 'A'.repeat(500);
+    expect(extractUrl(`https://example.com/article\n${suffix}`)).toBe('https://example.com/article');
+  });
+
+  it('returns null when start-of-text trailing text exceeds 500 chars', () => {
+    const suffix = 'A'.repeat(501);
+    expect(extractUrl(`https://example.com/article\n${suffix}`)).toBeNull();
+  });
+
+  it('strips trailing punctuation from start-of-text URL', () => {
+    expect(extractUrl('https://example.com/article. Read this later')).toBe('https://example.com/article');
+    expect(extractUrl('https://example.com/article! Great find')).toBe('https://example.com/article');
+  });
+
+  it('returns null when URL is embedded mid-text (not at start or end)', () => {
+    expect(extractUrl('Read https://first.com/a and https://second.com/b for details')).toBeNull();
+  });
 });
 
 // ── getUrlFromParams ────────────────────────────────────────────────
