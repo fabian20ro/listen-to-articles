@@ -321,6 +321,18 @@ describe('settings-store', () => {
     expect(loadSettings(defaults).wakeLock).toBe(true);
   });
 
+  it.each([null, 42, true] as const)(
+    'falls back to theme "dark" when stored theme is %s (not a valid theme)',
+    (storedValue) => {
+      localStorage.setItem(
+        'articlevoice-settings',
+        JSON.stringify({ ...defaults, theme: storedValue }),
+      );
+
+      expect(loadSettings(defaults).theme).toBe('dark');
+    },
+  );
+
   it('returns fallback defaults when saveSettings throws during load', () => {
     localStorage.setItem('articlevoice-settings', '{not-valid-json');
     const restore = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
