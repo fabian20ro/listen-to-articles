@@ -206,6 +206,23 @@ describe('PwaUpdateManager', () => {
     expect(onUpdateReady).not.toHaveBeenCalled();
   });
 
+  it('reloads only once when multiple controllerchange events fire', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const reloadSpy = vi.fn();
+
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => false,
+      reload: reloadSpy,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+    sw.listeners.controllerchange(new Event('controllerchange'));
+
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('checkForUpdates returns failed on registration error', async () => {
     const sw = mockServiceWorkerEnvironment();
     sw.update.mockRejectedValue(new Error('network'));
