@@ -52,6 +52,15 @@ describe('detectLanguage', () => {
     expect(detectLanguage(text)).toBe('ro');
   });
 
+  it('matches Romanian stop words case-insensitively when no diacritics are present', () => {
+    // All-uppercase input (headlines, TTS labels) yields zero diacritic hits,
+    // so detection must rely on the word list, whose regex is built with the
+    // 'i' flag. 'este', 'un', 'foarte' → 3 matches > 2 threshold → 'ro'.
+    // Dropping case-insensitivity would count 0 words and return 'en'.
+    const text = 'ESTE UN TEST FOARTE IMPORTANT';
+    expect(detectLanguage(text)).toBe('ro');
+  });
+
   it('detects Romanian via very short common words', () => {
     const text = 'de un la o cu';
     expect(detectLanguage(text)).toBe('ro');

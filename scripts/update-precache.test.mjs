@@ -192,9 +192,18 @@ describe('update-precache', () => {
       // Check the rendered sw.js contains precached entries and is valid JS.
       const written = readFileSync(outputSwPath, 'utf8');
       expect(written).toContain('const PRECACHE = [');
-      expect(runInNewContext(`${written}\nPRECACHE`)).toEqual(result.precacheEntries);
+      const precached = runInNewContext(`${written}\nPRECACHE`);
+      expect(precached).toEqual(result.precacheEntries);
       // Entry for index.html should be present
       expect(written).toContain("./index.html");
+      // The stable runtime assets this script emits into dist/ (manifest, icons,
+      // pdf worker) are collected after the sync step, so they must be precached —
+      // otherwise the PWA loses offline access to its own manifest, icons, and
+      // pdf worker.
+      expect(precached).toContain('./manifest.webmanifest');
+      expect(precached).toContain('./icons/icon-192.png');
+      expect(precached).toContain('./icons/icon-512.png');
+      expect(precached).toContain('./vendor/pdfjs/pdf.worker.min.mjs');
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }

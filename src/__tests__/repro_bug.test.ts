@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   extractArticleFromYoutube,
   extractYoutubeVideoId,
@@ -275,5 +275,53 @@ describe('extractArticleFromYoutube', () => {
     expect((caught as UpstreamResponseError).status).toBe(429);
     expect((caught as Error).message).toContain('rate limit');
     expect((caught as Error).message).not.toContain('YouTube extraction failed');
+  });
+
+  it('requests the transcript with fmt=json3, replacing any pre-existing fmt parameter', async () => {
+    const fetcher = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/youtubei/v1/player')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              videoDetails: { title: 'Test Video' },
+              playerCaptionsTracklistRenderer: {
+                captionTracks: [
+                  {
+                    baseUrl:
+                      'https://www.youtube.com/api/timedtext?v=abc12345678&lang=en&fmt=srv3',
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: 'Hello world.' }] }],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+    });
+
+    const article = await extractArticleFromYoutube(
+      'https://www.youtube.com/watch?v=abc12345678',
+      fetcher as typeof fetch,
+    );
+
+    expect(article.title).toBe('Transcript for: Test Video');
+
+    // Exactly one transcript request, with the track's fmt=srv3 parameter
+    // rewritten to fmt=json3 (srv3 returns XML that breaks the JSON parse).
+    const transcriptInputs = fetcher.mock.calls
+      .map(([input]) => String(input))
+      .filter((url) => url.includes('timedtext'));
+    expect(transcriptInputs).toEqual([
+      'https://www.youtube.com/api/timedtext?v=abc12345678&lang=en&fmt=json3',
+    ]);
   });
 });

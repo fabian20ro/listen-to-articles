@@ -252,6 +252,57 @@ describe('parseEpubFromArrayBuffer', () => {
     expect(article.title).toBe('my-book');
   });
 
+  it("uses the 'EPUB Document' constant title when OPF has no <title> and the source URL has no filename", async () => {
+    const zip = new JSZip();
+
+    // container.xml without namespace — extractOpfPath only uses full-path regex, so this still works
+    zip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container>
+  <rootfiles>
+    <rootfile full-path="content.opf"/>
+  </rootfiles>
+</container>`
+    );
+
+    // OPF with empty <metadata> — no <dc:title>, so the OPF title is ''.
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata dc:language="en"></metadata>
+  <manifest>
+    <item id="ch1" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>`
+    );
+
+    zip.file(
+      'chapter.xhtml',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <body><p>A paragraph long enough to satisfy the minimum length requirement for extraction.</p></body>
+</html>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    // Root URL: pathname is '/', so the derived filename is '' and no URL
+    // fallback title exists — the final 'EPUB Document' fallback must kick in
+    // (title chain: epubTitle || titleFallback || 'EPUB Document').
+    const article = await parseEpubFromArrayBuffer(buf, 'https://example.com/', domParserCtor);
+
+    expect(article.title).toBe('EPUB Document');
+  });
+
   it('invokes onProgress with expected messages during single-chapter processing (no per-chapter progress)', async () => {
     const zip = new JSZip();
 

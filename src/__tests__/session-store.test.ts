@@ -103,6 +103,19 @@ describe('session-store', () => {
       expect(localStorage.getItem('article-reader-last-article')).toBeNull();
     });
 
+    it('removes articles with a non-array paragraphs field before returning null', () => {
+      localStorage.setItem(
+        'article-reader-last-article',
+        JSON.stringify({
+          article: { ...makeArticle(), paragraphs: 'not-an-array' },
+          savedAt: 123456789,
+        }),
+      );
+
+      expect(loadLastArticle()).toBeNull();
+      expect(localStorage.getItem('article-reader-last-article')).toBeNull();
+    });
+
     it('removes non-finite timestamps before returning null', () => {
       localStorage.setItem(
         'article-reader-last-article',

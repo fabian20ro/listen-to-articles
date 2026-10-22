@@ -20,6 +20,7 @@ import {
 } from '../lib/extractor.js';
 import { sanitizeRenderedHtml, parseArticleFromHtml } from '../lib/extractors/extract-html.js';
 import { extractTitleFromMarkdown } from '../lib/extractors/utils.js';
+import { MAX_PDF_SIZE } from '../lib/extractors/types.js';
 
 // ── Mock modules ──────────────────────────────────────────────────
 
@@ -1217,6 +1218,18 @@ describe('extractArticleFromEpubUrl', () => {
 
   it('throws when EPUB file is too large (> 10 MB)', async () => {
     mockFetch('Huge', 200, { 'content-length': '20000000' });
+
+    await expect(extractArticleFromEpubUrl('https://gutenberg.org/ebooks/49038.epub', PROXY))
+      .rejects.toThrow(/too large/i);
+  });
+
+  it('throws when the downloaded buffer exceeds the limit even if the content-length header is small', async () => {
+    // The content-length header lies; only the post-download buffer.byteLength
+    // guard in fetchBinaryViaProxy can catch an oversized body.
+    vi.mocked(globalThis.fetch).mockResolvedValue(new Response(new Uint8Array(MAX_PDF_SIZE + 1), {
+      status: 200,
+      headers: { 'content-type': 'application/epub+zip', 'content-length': '10' },
+    }));
 
     await expect(extractArticleFromEpubUrl('https://gutenberg.org/ebooks/49038.epub', PROXY))
       .rejects.toThrow(/too large/i);
