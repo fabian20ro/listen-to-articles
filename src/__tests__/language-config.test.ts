@@ -163,6 +163,15 @@ describe('isLanguage', () => {
     expect(isLanguage('en-US')).toBe(false);
     expect(isLanguage('ro-RO')).toBe(false);
   });
+
+  // The guard is a type predicate for Language ('en' | 'ro'); case-variants
+  // are not members of the union, so consumers that trust it (settings-store
+  // toLang) must never receive them. A case-insensitive implementation
+  // passes every assertion above but accepts 'EN' — only this catches that.
+  it('returns false for case-variants of supported codes', () => {
+    expect(isLanguage('EN')).toBe(false);
+    expect(isLanguage('Ro')).toBe(false);
+  });
 });
 
 // ── getLanguageLabel ────────────────────────────────────────────────

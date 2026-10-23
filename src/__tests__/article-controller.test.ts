@@ -481,6 +481,72 @@ describe('ArticleController', () => {
     expect(refs.articleSection.classList.contains('hidden')).toBe(false);
   });
 
+  it('submits on Enter only for single-line input, ignores multi-line Enter, and clears on Escape', async () => {
+    const article = {
+      title: 'Enter',
+      content: '<p>enter</p>',
+      textContent: 'enter',
+      markdown: 'enter',
+      paragraphs: ['enter paragraph'],
+      lang: 'en',
+      htmlLang: 'en',
+      siteName: 'Site',
+      excerpt: '',
+      wordCount: 10,
+      estimatedMinutes: 1,
+      resolvedUrl: 'https://example.com/enter',
+    } as any;
+    vi.mocked(extractArticle).mockResolvedValue(article);
+
+    const refs = makeRefs();
+    const ttsMock = {
+      stop: vi.fn(),
+      loadArticle: vi.fn(),
+      setLang: vi.fn(),
+    };
+    const controller = new ArticleController({
+      refs,
+      tts: ttsMock as any,
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+    });
+    controller.init();
+
+    // Escape clears the input without submitting.
+    refs.urlInput.value = 'https://example.com/article';
+    refs.urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(refs.urlInput.value).toBe('');
+    expect(extractArticle).not.toHaveBeenCalled();
+
+    // A pasted URL with a trailing newline (multi-line) must not submit on plain Enter.
+    refs.urlInput.value = 'https://example.com/article\n';
+    refs.urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(extractArticle).not.toHaveBeenCalled();
+    expect(ttsMock.stop).not.toHaveBeenCalled();
+    expect(refs.urlInput.value).toBe('https://example.com/article\n');
+
+    // Ctrl+Enter explicitly submits even when the input is multi-line.
+    refs.urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(extractArticle).toHaveBeenCalledTimes(1);
+    expect(extractArticle).toHaveBeenCalledWith(
+      'https://example.com/article',
+      'https://proxy.example.workers.dev',
+      expect.objectContaining({ onProgress: expect.any(Function) }),
+    );
+
+    // A single-line URL submits on plain Enter.
+    refs.urlInput.value = 'https://example.com/second';
+    refs.urlInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(extractArticle).toHaveBeenLastCalledWith(
+      'https://example.com/second',
+      'https://proxy.example.workers.dev',
+      expect.objectContaining({ onProgress: expect.any(Function) }),
+    );
+  });
+
   it('updates language and TTS when setLangOverride is called', async () => {
     const article = {
       title: 'Test',
