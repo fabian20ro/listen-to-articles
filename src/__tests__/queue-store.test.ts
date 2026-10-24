@@ -433,6 +433,17 @@ describe('queue-store', () => {
       const persisted = JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]') as QueueItem[];
       expect(persisted.map((i) => i.id)).toEqual(['b', 'a-new']);
     });
+
+    it('keeps all empty-URL items when reordering (empty URL is not a dedup key)', () => {
+      const a = makeItem({ id: 'empty-1', url: '' });
+      const b = makeItem({ id: 'empty-2', url: '' });
+
+      const result = reorderQueue([a, b]);
+
+      expect(result.map((i) => i.id)).toEqual(['empty-1', 'empty-2']);
+      const persisted = JSON.parse(localStorage.getItem('article-reader-queue') ?? '[]') as QueueItem[];
+      expect(persisted.map((i) => i.id)).toEqual(['empty-1', 'empty-2']);
+    });
   });
 
   describe('addToQueue failure resilience', () => {

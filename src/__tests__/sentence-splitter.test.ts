@@ -46,6 +46,16 @@ describe('sentence-splitter', () => {
       expect(mergeShortSentences([x, y, z])).toEqual([`${x} ${y}`, z]);
     });
 
+    it('should stop merging once the accumulated chunk reaches MIN_SENTENCE_LENGTH (40)', () => {
+      // The MIN gate is evaluated on the growing accumulator, not just the first
+      // fragment: after the first merge the chunk is 79 chars (>= 40), so the next
+      // short sentence must start a fresh segment even though it is itself < 40 chars.
+      const a = 'A'.repeat(39);
+      const b = 'B'.repeat(39);
+      const c = 'C'.repeat(39);
+      expect(mergeShortSentences([a, b, c])).toEqual([`${a} ${b}`, c]);
+    });
+
     it('should handle empty input array', () => {
       expect(mergeShortSentences([])).toEqual([]);
     });
