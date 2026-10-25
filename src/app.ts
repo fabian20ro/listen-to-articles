@@ -20,6 +20,7 @@ import { ListFilter } from './lib/list-filter.js';
 import { detectVoiceGender, getAllowedVoices } from './lib/voice-helpers.js';
 import { openDrawer, closeDrawer, showSnackbar, hideSnackbar, updateSegmentButtons } from './lib/ui-helpers.js';
 import { buildChaptersList } from './lib/chapter-renderer.js';
+import { loadLastArticle, saveLastArticle } from './lib/session-store.js';
 
 const CONFIG = {
   PROXY_BASE: import.meta.env.VITE_PROXY_BASE || 'https://pixel-article-reader.fabian20ro.workers.dev',
@@ -170,6 +171,9 @@ async function main(): Promise<void> {
       }
 
       rebuildChapters();
+
+      const current = articleController.getCurrentArticle();
+      if (current) saveLastArticle(current);
     },
   });
   articleController.init();
@@ -519,6 +523,15 @@ async function main(): Promise<void> {
   });
 
   await articleController.handleInitialSharedUrl();
+
+  // Restore last-read article when launched without a shared URL (PWA relaunch).
+  if (!articleController.getCurrentArticle()) {
+    const last = loadLastArticle();
+    if (last) {
+      void articleController.loadArticleFromStored(last.article);
+    }
+  }
+
   updateSpeedButtons(settings.rate);
 }
 

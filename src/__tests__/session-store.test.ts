@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clearLastArticle, loadLastArticle, saveLastArticle, type LastSessionData } from '../lib/session-store.js';
 import type { Article } from '../lib/extractor.js';
+import appSource from '../app.ts?raw';
 
 function createStorageMock() {
   const map = new Map<string, string>();
@@ -329,5 +330,21 @@ describe('session-store', () => {
 
       expect(() => clearLastArticle()).not.toThrow();
     });
+  });
+});
+
+describe('session-store bootstrap wiring (app.ts)', () => {
+  it('app.ts imports session-store and wires restore-on-launch + save-on-render', () => {
+    // Regression: the module-level tests above prove save/load work, but without
+    // bootstrap wiring the app never calls them, so relaunch always shows an
+    // empty player. Assert the production caller actually wires the session store.
+    expect(appSource).toContain(
+      "import { loadLastArticle, saveLastArticle } from './lib/session-store.js'"
+    );
+    // Launch path: stored session is loaded and passed to the controller render path.
+    expect(appSource).toMatch(/loadLastArticle\(\)/);
+    expect(appSource).toMatch(/loadArticleFromStored\(/);
+    // Render path: the displayed article is persisted for the next launch.
+    expect(appSource).toMatch(/saveLastArticle\(/);
   });
 });
