@@ -156,6 +156,39 @@ describe('MediaSessionController', () => {
     expect(controller.active).toBe(false);
   });
 
+  it('should restart audio via keep-alive watchdog when the browser pauses it, and not replay while still playing', async () => {
+    // The watchdog is the documented Android keep-alive: it must restart a
+    // paused element, but must not touch an element that is still playing.
+    // Existing keep-alive tests only assert on the timer handle, never on the
+    // callback, so a dead or inverted callback would pass the current suite.
+    vi.useFakeTimers();
+    try {
+      controller.activate('Test Title');
+      await Promise.resolve(); // let play() promise settle
+      playSpy.mockClear();
+
+      const audio = (controller as any)['audio'] as HTMLAudioElement;
+
+      // Browser paused the element while the page was hidden.
+      Object.defineProperty(audio, 'paused', { value: true, configurable: true });
+
+      vi.advanceTimersByTime(5000); // one documented keep-alive tick
+      await Promise.resolve();
+      expect(playSpy).toHaveBeenCalledTimes(1);
+
+      // Element still playing — watchdog must leave it alone.
+      Object.defineProperty(audio, 'paused', { value: false, configurable: true });
+      playSpy.mockClear();
+
+      vi.advanceTimersByTime(5000);
+      await Promise.resolve();
+      expect(playSpy).not.toHaveBeenCalled();
+    } finally {
+      controller.deactivate();
+      vi.useRealTimers();
+    }
+  });
+
   it('should use default metadata when no args provided', () => {
     controller.updateMetadata();
     expect(navigator.mediaSession.metadata?.title).toBe('Listen to Articles');
