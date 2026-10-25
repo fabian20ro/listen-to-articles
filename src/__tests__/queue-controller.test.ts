@@ -208,4 +208,38 @@ describe('QueueController', () => {
       -1,
     );
   });
+
+  it('preserves the current item when removing other queue items', () => {
+    localStorage.setItem('article-reader-queue', JSON.stringify([
+      item('a'), item('b'), item('c'),
+    ]));
+    const onQueueChange = vi.fn();
+    const controller = new QueueController({
+      articleController: { loadArticleFromUrl: vi.fn() } as never,
+      tts: { play: vi.fn(), stop: vi.fn() } as never,
+      callbacks: {
+        onQueueChange,
+        onAutoAdvanceCountdown: vi.fn(),
+        onAutoAdvanceCancelled: vi.fn(),
+        onError: vi.fn(),
+      },
+    });
+
+    controller.syncCurrentById('b');
+    expect(controller.getCurrentIndex()).toBe(1);
+
+    controller.removeItem('a');
+
+    expect(controller.getCurrentIndex()).toBe(0);
+    expect(controller.getCurrentItem()?.id).toBe('b');
+    expect(onQueueChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'b' })]),
+      0,
+    );
+
+    controller.removeItem('c');
+
+    expect(controller.getCurrentIndex()).toBe(0);
+    expect(controller.getCurrentItem()?.id).toBe('b');
+  });
 });
