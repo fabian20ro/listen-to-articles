@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ArticleController } from '../lib/article-controller.js';
 import { extractArticle, createArticleFromMarkdownFile, createArticleFromPdf, createArticleFromTextFile, createArticleFromEpub } from '../lib/extractor.js';
 import { translateParagraphs } from '../lib/translator.js';
+import { buildChaptersList, highlightActiveChapter } from '../lib/chapter-renderer.js';
 
 vi.mock('../lib/extractor.js', async () => {
   const actual = await vi.importActual<typeof import('../lib/extractor.js')>('../lib/extractor.js');
@@ -1216,5 +1217,47 @@ describe('ArticleController', () => {
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(writeText).toHaveBeenCalledWith('# My Great Article!\n\nBody text.');
     expect(refs.copyMdBtn.textContent).toBe('Copied!');
+  });
+});
+
+describe('chapter-renderer', () => {
+  it('highlights the chapter list item for the current TTS paragraph and clears on end', () => {
+    const articleText = document.createElement('div');
+    articleText.innerHTML = `
+      <h2>Chapter One</h2>
+      <div class="paragraph" data-index="0">first</div>
+      <div class="paragraph" data-index="1">second</div>
+      <h2>Chapter Two</h2>
+      <div class="paragraph" data-index="2">third</div>
+    `;
+    const chaptersList = document.createElement('div');
+    const ranges = buildChaptersList({
+      articleText,
+      chaptersList,
+      chaptersBtn: document.createElement('button'),
+      chaptersFilter: { clear: vi.fn() } as any,
+      tts: { jumpToParagraph: vi.fn() } as any,
+    });
+
+    expect(ranges).toHaveLength(2);
+    expect(ranges[0].start).toBe(0);
+    expect(ranges[0].end).toBe(1);
+    expect(ranges[1].start).toBe(2);
+    expect(ranges[1].end).toBe(2);
+
+    const items = chaptersList.querySelectorAll<HTMLElement>('.chapter-item');
+    expect(items).toHaveLength(2);
+
+    highlightActiveChapter(chaptersList, 1, ranges);
+    expect(items[0].classList.contains('chapter-item--active')).toBe(true);
+    expect(items[1].classList.contains('chapter-item--active')).toBe(false);
+
+    highlightActiveChapter(chaptersList, 2, ranges);
+    expect(items[0].classList.contains('chapter-item--active')).toBe(false);
+    expect(items[1].classList.contains('chapter-item--active')).toBe(true);
+
+    highlightActiveChapter(chaptersList, -1, ranges);
+    expect(items[0].classList.contains('chapter-item--active')).toBe(false);
+    expect(items[1].classList.contains('chapter-item--active')).toBe(false);
   });
 });

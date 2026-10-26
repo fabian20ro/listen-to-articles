@@ -19,7 +19,8 @@ import type { Language } from './lib/language-config.js';
 import { ListFilter } from './lib/list-filter.js';
 import { detectVoiceGender, getAllowedVoices } from './lib/voice-helpers.js';
 import { openDrawer, closeDrawer, showSnackbar, hideSnackbar, updateSegmentButtons } from './lib/ui-helpers.js';
-import { buildChaptersList } from './lib/chapter-renderer.js';
+import { buildChaptersList, highlightActiveChapter } from './lib/chapter-renderer.js';
+import type { ChapterRange } from './lib/chapter-renderer.js';
 import { loadLastArticle, saveLastArticle } from './lib/session-store.js';
 
 const CONFIG = {
@@ -38,6 +39,7 @@ async function main(): Promise<void> {
 
   let updateManager: PwaUpdateManager | null = null;
   let queueController: QueueController | null = null;
+  let chapterRanges: ChapterRange[] = [];
 
   // ── Player UI helpers ────────────────────────────────────────
 
@@ -94,10 +96,12 @@ async function main(): Promise<void> {
       },
       onParagraphChange(index) {
         highlightParagraph(index);
+        highlightActiveChapter(refs.chaptersList, index, chapterRanges);
       },
       onEnd() {
         updatePlayButton(false, false);
         highlightParagraph(-1);
+        highlightActiveChapter(refs.chaptersList, -1, chapterRanges);
         if (queueController) {
           queueController.handleArticleEnd();
         }
@@ -131,7 +135,7 @@ async function main(): Promise<void> {
   refs.chaptersOverlay.addEventListener('click', closeChaptersSheet);
 
   function rebuildChapters(): void {
-    buildChaptersList({
+    chapterRanges = buildChaptersList({
       articleText: refs.articleText,
       chaptersList: refs.chaptersList,
       chaptersBtn: refs.chaptersBtn,
