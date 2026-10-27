@@ -945,6 +945,13 @@ body {
   background: var(--hover-overlay);
 }
 
+/* Keep the playback cue visible on hover, without shifting chapter indentation. */
+.chapter-item--active {
+  background: var(--hover-overlay);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 600;
+}
+
 .chapter-item[data-level="2"] { padding-left: 32px; }
 .chapter-item[data-level="3"] { padding-left: 48px; font-size: 13px; color: var(--text-secondary); }
 .chapter-item[data-level="4"],

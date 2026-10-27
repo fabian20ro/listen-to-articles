@@ -79,6 +79,8 @@ Guard against races: if `_isPaused` is true in `acquireWakeLock()`, release imme
 
 ## Process & Workflow
 
+**[2026-10-27] Verify the shipped consumer, not only helper state** — Theme controls, Backtick input and active-chapter styling each exposed tests that agreed with implementation while missing user-visible behavior. Exercise the real control/input/rendered style. Class toggles alone do not prove appearance; Vitest CSS imports may be disabled, so make actual asset loading explicit. Preserve a before-fix behavioral failure and a working positive control.
+
 **[2026-05-16] Use exact shipped labels in docs-visible UI syncs** — When README/docs mirror a live control, prefer the literal button label or accessible name over generic icon/menu wording. It keeps docs aligned with the shipped surface and makes drift easier to spot.
 
 ---
