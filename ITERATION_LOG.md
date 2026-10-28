@@ -436,6 +436,7 @@ Each entry should follow this structure:
 
 **Promoted to Lessons Learned:** No
 
+
 ---
 
 ### [2026-02-22] Fix TTS pauses on names and abbreviations
@@ -1248,3 +1249,11 @@ Each entry should follow this structure:
 **Verification:** Original module with platform-valid input: 3 pass/1 fail; one-line correction: 4 pass. Full disposable worker check: lint/typecheck, 1044 tests/29 files and build pass. Real Chrome keyboard gesture: dark→light, selected button and stored setting match; unrelated key and reload preserve light.
 **Insight:** A technical recipe repeated in code and its fixture is not independent behavioral evidence.
 **Promoted to Lessons Learned:** No
+
+### [2026-10-27] Make the active playback chapter actually visible
+
+**Context:** The merged chapter range/callback feature toggled a class with no stylesheet consumer. Manual follow-up under an exclusive per-project Compound maintenance reservation; queued metadata proposal and its consent unchanged.
+**What happened:** Added a theme-aware inset marker, background and bold weight for the existing active class, without changing renderer/TTS interfaces or indentation. Bumped SW_VERSION for the changed app shell. Regression tests load the real stylesheet and exercise the public chapter renderer through active, moved and ended playback in dark/light/khaki themes.
+**Verification:** Actual-asset RED before CSS, GREEN after. Full suite 1075 tests/30 files, both TypeScript checks, production build and Worker dry-run pass. Chromium production-preview replay: 9 theme/viewport combinations, desktop1200 and mobile/touch390/320; real app bootstrap/play/chapter-click/end callbacks with deterministic platform speech; no horizontal overflow or uncaught page errors. Screenshots inspected. Mobile emulation, not physical-device audio verification.
+**Insight:** A class-only assertion cannot prove visual behavior; consume the shipped stylesheet and exercise actual app wiring. Vitest disables CSS imports by default, including raw imports in this version, so the regression reads the real asset rather than an empty import stub.
+**Promoted to Lessons Learned:** Yes
