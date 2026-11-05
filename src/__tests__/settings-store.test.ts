@@ -336,6 +336,21 @@ describe('settings-store', () => {
     },
   );
 
+  it.each(['DARK', 'Light', 'Khaki', 'System'] as const)(
+    'rejects case-variant theme "%s" (THEMES is exact-match): falls back to "dark" and writes back cleaned settings',
+    (storedTheme) => {
+      localStorage.setItem(
+        'articlevoice-settings',
+        JSON.stringify({ ...defaults, theme: storedTheme }),
+      );
+
+      expect(loadSettings(defaults).theme).toBe('dark');
+      expect(localStorage.getItem('articlevoice-settings')).toBe(
+        JSON.stringify(createDefaultSettings(defaults)),
+      );
+    },
+  );
+
   it('returns fallback defaults when saveSettings throws during load', () => {
     localStorage.setItem('articlevoice-settings', '{not-valid-json');
     const restore = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
