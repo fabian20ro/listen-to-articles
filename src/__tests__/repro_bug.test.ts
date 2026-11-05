@@ -324,4 +324,47 @@ describe('extractArticleFromYoutube', () => {
       'https://www.youtube.com/api/timedtext?v=abc12345678&lang=en&fmt=json3',
     ]);
   });
+
+  it('estimates at least one reading minute for a short transcript', async () => {
+    const fetcher = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/youtubei/v1/player')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              videoDetails: { title: 'Test Video' },
+              playerCaptionsTracklistRenderer: {
+                captionTracks: [
+                  {
+                    baseUrl:
+                      'https://www.youtube.com/api/timedtext?v=abc12345678&lang=en&fmt=json3',
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: 'Short clip.' }] }],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        ),
+      );
+    });
+
+    const article = await extractArticleFromYoutube(
+      'https://www.youtube.com/watch?v=abc12345678',
+      fetcher as typeof fetch,
+    );
+
+    // "Short clip." is 2 words: round(2 / 180) === 0, so the
+    // Math.max(1, ...) floor must keep estimatedMinutes at 1, never 0.
+    // Catches a regression where the floor is dropped and a non-empty
+    // transcript reports 0 reading minutes.
+    expect(article.estimatedMinutes).toBe(1);
+  });
 });

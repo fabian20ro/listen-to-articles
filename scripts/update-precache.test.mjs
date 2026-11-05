@@ -163,6 +163,21 @@ describe('update-precache', () => {
     }
   });
 
+  it('throws when dist exists as a file rather than a directory', async () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-dist-is-file-'));
+
+    try {
+      // dist exists but as a regular file: the isDirectory guard must reject
+      // it before any mutation, with the same actionable error.
+      writeFileSync(join(tempRoot, 'dist'), 'not a directory');
+
+      const { syncDistServiceWorker } = await fixtureRuntime(tempRoot);
+      expect(() => syncDistServiceWorker()).toThrow(/dist\/ does not exist/);
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it('returns outputSwPath and sorted precache entries with "./" first', async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), 'listen-to-articles-sync-dist-'));
 

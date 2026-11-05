@@ -84,6 +84,34 @@ describe('parseEpubFromArrayBuffer', () => {
     ).rejects.toThrow(/zip/i);
   });
 
+  it('throws when a valid ZIP archive lacks META-INF/container.xml', async () => {
+    // A structurally valid (non-empty) zip that omits container.xml must be
+    // rejected at the container stage. The junk-buffer tests above never reach
+    // readZipFile — they fail earlier inside JSZip.loadAsync — so this branch
+    // (extract-epub.ts: if (!containerXml) throw) needs its own fixture.
+    const zip = new JSZip();
+
+    zip.file(
+      'content.opf',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.idpf.org/2007/opf">
+  <metadata><dc:title>No Container</dc:title></metadata>
+  <manifest></manifest>
+  <spine></spine>
+</package>`
+    );
+
+    const buf = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    await expect(
+      parseEpubFromArrayBuffer(buf, 'https://example.com/no-container.epub', domParserCtor),
+    ).rejects.toThrow(/Invalid EPUB: missing container\.xml/);
+  });
+
   it('does not escape "Invalid URL" from title-fallback derivation (valid or invalid source URL; junk buffer rejects at zip stage)', async () => {
     // parseEpubFromArrayBuffer derives a title fallback from sourceUrl inside
     // try/catch, so URL parsing can never leak a TypeError. A junk buffer must

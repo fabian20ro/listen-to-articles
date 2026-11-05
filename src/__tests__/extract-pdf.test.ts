@@ -546,6 +546,29 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.paragraphs[0]).toContain('Metadata from JSON test content.');
   });
 
+  it('should fall back to filename defaults when metadata.toJSON() throws (regression: metadata error must not break parsing)', async () => {
+    pdfJsMock.getDocument.mockImplementation((_params: any) => {
+      const pdfObj = {
+        numPages: 1,
+        info: {},
+        getPage: (_pageNum: number) => Promise.resolve({
+          getTextContent: () => Promise.resolve({ items: [{ str: 'Metadata from JSON test content.', transform: [1, 0, 0, 1, 0, 700], height: 12 }] }),
+        }),
+        metadata: {
+          toJSON() { throw new Error('metadata extraction failed'); },
+        },
+      } as any;
+      return { promise: Promise.resolve(pdfObj) };
+    });
+
+    const buffer = new ArrayBuffer(1024);
+    const result = await parsePdfFromArrayBuffer(buffer, 'throwing-meta.pdf');
+
+    expect(result.title).toBe('throwing-meta'); // filename fallback; throw must not surface
+    expect(result.siteName).toBe('PDF'); // author unavailable -> default
+    expect(result.paragraphs[0]).toContain('Metadata from JSON test content.');
+  });
+
   it('should decode array-encoded title/author from pdf.info (regression: arrays silently dropped)', async () => {
     setupMockPdf(1, {
       Title: ['Article', 'Title'],

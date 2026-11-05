@@ -754,6 +754,18 @@ describe('createArticleFromText', () => {
   });
 });
 
+// ── createArticleFromTextFile ─────────────────────────────────────
+
+describe('createArticleFromTextFile', () => {
+  it('derives title from filename (extension stripped) and tags source as Text File', async () => {
+    const text = 'First paragraph with enough words to pass the filter.\n\nSecond paragraph also has enough text content.';
+    const file = new File([text], 'my-notes.txt');
+    const article = await createArticleFromTextFile(file);
+    expect(article.title).toBe('my-notes');
+    expect(article.siteName).toBe('Text File');
+  });
+});
+
 // ── createArticleFromMarkdownFile ────────────────────────────────
 
 describe('createArticleFromMarkdownFile', () => {
