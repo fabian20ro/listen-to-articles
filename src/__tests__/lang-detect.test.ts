@@ -478,6 +478,15 @@ describe('needsTranslation', () => {
     // No supported URL signal → default to translate.
     expect(needsTranslation('und', 'https://example.com/article')).toBe(true);
   });
+
+  it('treats htmlLang "zxx" as no signal, falling through to URL TLD', () => {
+    // NO_LANG_CODES covers und/mis/zxx; the decision level must honor the
+    // other set members, not just "und". A real page with lang="zxx" on a
+    // supported .ro domain must not be forced to translate; with no URL
+    // signal it must default to translate.
+    expect(needsTranslation('zxx', 'https://digi24.ro/stiri')).toBe(false);
+    expect(needsTranslation('zxx', 'https://example.com/article')).toBe(true);
+  });
 });
 
 // ── getSourceLang ──────────────────────────────────────────────────
@@ -506,5 +515,13 @@ describe('getSourceLang', () => {
     expect(getSourceLang('und', 'https://digi24.ro/stiri')).toBe('ro');
     // No URL signal either → auto.
     expect(getSourceLang('und', 'https://example.com/article')).toBe('auto');
+  });
+
+  it('treats htmlLang "zxx" as no signal, falling through to URL TLD', () => {
+    // Same no-language set as the "und" case above: a supported .ro URL must
+    // win over lang="zxx" instead of sending an invalid source code to the
+    // translation API; with no URL signal the fallback is auto.
+    expect(getSourceLang('zxx', 'https://digi24.ro/stiri')).toBe('ro');
+    expect(getSourceLang('zxx', 'https://example.com/article')).toBe('auto');
   });
 });
