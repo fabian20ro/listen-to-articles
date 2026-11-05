@@ -322,7 +322,7 @@ describe('settings-store', () => {
   });
 
   it.each([null, 42, true] as const)(
-    'falls back to theme "dark" when stored theme is %s (not a valid theme)',
+    'falls back to theme "dark" and writes back cleaned settings when stored theme is %s (not a valid theme)',
     (storedValue) => {
       localStorage.setItem(
         'articlevoice-settings',
@@ -330,6 +330,9 @@ describe('settings-store', () => {
       );
 
       expect(loadSettings(defaults).theme).toBe('dark');
+      expect(localStorage.getItem('articlevoice-settings')).toBe(
+        JSON.stringify(createDefaultSettings(defaults)),
+      );
     },
   );
 
