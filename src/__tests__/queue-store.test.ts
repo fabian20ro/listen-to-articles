@@ -446,6 +446,38 @@ describe('queue-store', () => {
     });
   });
 
+  describe('loadQueue failure resilience', () => {
+    it('returns the in-memory queue when the sanitizing writeback throws on save', () => {
+      const mock = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')!;
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: createStorageMock(),
+        configurable: true,
+      });
+
+      // Seed a dirty item so the load triggers a sanitizing writeback,
+      // then make that writeback fail (quota exceeded).
+      const dirty = makeItem({ id: 'dirty', title: '  <Draft>  ' });
+      const seeded = JSON.stringify([dirty]);
+      localStorage.setItem('article-reader-queue', seeded);
+      (globalThis.localStorage as any).setItem = () => {
+        throw new DOMException('QuotaExceededError', 'Failed to save');
+      };
+
+      const loaded = loadQueue();
+
+      // In-memory state must remain consistent even when persisting the
+      // cleaned queue fails, so callers can rely on the returned array
+      // for UI rendering.
+      expect(loaded).toHaveLength(1);
+      expect(loaded[0].id).toBe('dirty');
+      expect(loaded[0].title).toBe('Draft');
+      // The failed writeback leaves the previously stored JSON untouched.
+      expect(localStorage.getItem('article-reader-queue')).toBe(seeded);
+
+      Object.defineProperty(globalThis, 'localStorage', { value: mock.value, configurable: true });
+    });
+  });
+
   describe('addToQueue failure resilience', () => {
     it('preserves in-memory queue state when localStorage.setItem throws on save', () => {
       const mock = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')!;
