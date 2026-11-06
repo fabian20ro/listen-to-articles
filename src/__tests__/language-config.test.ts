@@ -247,10 +247,15 @@ describe('DEFAULT_TRANSLATION_TARGET', () => {
 // ── LANG_TTS_CODES maintenance contract ───────────────────────────────
 
 describe('LANG_TTS_CODES maintenance contract', () => {
-  // Forward: every supported language must have a TTS code.
-  it('has an entry for every supported language', () => {
+  // Forward: every supported language must have a TTS code. An empty string
+  // passes toBeDefined but is not a code: langToCode's falsy fallback would
+  // silently speak that language in English, so the code must be non-empty
+  // (same standard as the LANG_LABELS forward contract above).
+  it('has a non-empty TTS code for every supported language', () => {
     for (const lang of SUPPORTED_LANGUAGES) {
-      expect(LANG_TTS_CODES[lang]).toBeDefined();
+      const code = LANG_TTS_CODES[lang];
+      expect(typeof code, `LANG_TTS_CODES[${lang}]`).toBe('string');
+      expect(code.length > 0, `LANG_TTS_CODES[${lang}]`).toBeTruthy();
     }
   });
 
