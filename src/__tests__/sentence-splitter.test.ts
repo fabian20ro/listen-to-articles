@@ -46,6 +46,14 @@ describe('sentence-splitter', () => {
       expect(mergeShortSentences([x, y, z])).toEqual([`${x} ${y}`, z]);
     });
 
+    it('should merge when the merged length equals MAX_UTTERANCE_LENGTH exactly (200)', () => {
+      // 39 + 1 (space) + 160 = exactly 200 — the merge gate is inclusive (`<=`),
+      // so a boundary total must merge; the 201-char case above must not.
+      const current = 'A'.repeat(39);
+      const next = 'B'.repeat(160);
+      expect(mergeShortSentences([current, next])).toEqual([`${current} ${next}`]);
+    });
+
     it('should stop merging once the accumulated chunk reaches MIN_SENTENCE_LENGTH (40)', () => {
       // The MIN gate is evaluated on the growing accumulator, not just the first
       // fragment: after the first merge the chunk is 79 chars (>= 40), so the next
