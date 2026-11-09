@@ -267,6 +267,71 @@ describe('ArticleController', () => {
     expect(refs.errorSection.classList.contains('hidden')).toBe(false);
   });
 
+  it('shows an extraction error instead of displaying an article with no readable content', async () => {
+    // Whitespace-only title triggers the title branch of the empty-content guard.
+    vi.mocked(extractArticle)
+      .mockResolvedValueOnce({
+        title: '   ',
+        content: '<div></div>',
+        textContent: '',
+        markdown: '',
+        paragraphs: ['orphan paragraph'],
+        lang: 'en',
+        htmlLang: 'en',
+        siteName: 'Site',
+        excerpt: '',
+        wordCount: 1,
+        estimatedMinutes: 1,
+        resolvedUrl: 'https://example.com/empty',
+      } as any)
+      .mockResolvedValueOnce({
+        title: 'Real Title',
+        content: '',
+        textContent: '',
+        markdown: '',
+        paragraphs: [],
+        lang: 'en',
+        htmlLang: 'en',
+        siteName: 'Site',
+        excerpt: '',
+        wordCount: 0,
+        estimatedMinutes: 0,
+        resolvedUrl: 'https://example.com/no-paragraphs',
+      } as any);
+
+    const refs = makeRefs();
+    const ttsMock = {
+      stop: vi.fn(),
+      loadArticle: vi.fn(),
+      setLang: vi.fn(),
+    };
+    const controller = new ArticleController({
+      refs,
+      tts: ttsMock as any,
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+    });
+
+    await (controller as any).loadArticle('https://example.com/empty');
+    expect(refs.errorMessage.textContent).toBe(
+      'Could not extract readable content from the article.',
+    );
+    expect(refs.errorSection.classList.contains('hidden')).toBe(false);
+
+    // A page with a title but zero extracted paragraphs hits the other branch.
+    await (controller as any).loadArticle('https://example.com/no-paragraphs');
+
+    expect(extractArticle).toHaveBeenCalledTimes(2);
+    expect(refs.errorMessage.textContent).toBe(
+      'Could not extract readable content from the article.',
+    );
+    expect(refs.errorSection.classList.contains('hidden')).toBe(false);
+    expect(refs.articleSection.classList.contains('hidden')).toBe(true);
+    expect(refs.articleTitle.textContent).toBe('');
+    expect(controller.getCurrentArticle()).toBeNull();
+    expect(ttsMock.loadArticle).not.toHaveBeenCalled();
+  });
+
   it('ignores stale URL load results when a newer load starts', async () => {
     let resolveFirst: ((v: any) => void) | null = null;
     vi.mocked(extractArticle)
