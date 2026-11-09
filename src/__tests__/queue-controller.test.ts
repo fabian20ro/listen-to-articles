@@ -180,6 +180,63 @@ describe('QueueController', () => {
     }
   });
 
+  it('loads the clicked queue item without auto-starting playback', async () => {
+    localStorage.setItem('article-reader-queue', JSON.stringify([
+      item('a'), item('b'),
+    ]));
+    const loadArticleFromUrl = vi.fn().mockResolvedValue(undefined);
+    const play = vi.fn();
+    const onQueueChange = vi.fn();
+    const controller = new QueueController({
+      articleController: { loadArticleFromUrl } as never,
+      tts: { play, stop: vi.fn() } as never,
+      callbacks: {
+        onQueueChange,
+        onAutoAdvanceCountdown: vi.fn(),
+        onAutoAdvanceCancelled: vi.fn(),
+        onError: vi.fn(),
+      },
+    });
+
+    await controller.playItem('b');
+
+    expect(controller.getCurrentIndex()).toBe(1);
+    expect(controller.getCurrentItem()?.id).toBe('b');
+    expect(loadArticleFromUrl).toHaveBeenCalledWith('https://example.com/b');
+    expect(play).not.toHaveBeenCalled();
+    expect(controller.isLoadingItem()).toBe(false);
+    expect(onQueueChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'b' })]),
+      1,
+    );
+  });
+
+  it('ignores an unknown queue item id without loading or notifying', async () => {
+    localStorage.setItem('article-reader-queue', JSON.stringify([
+      item('a'),
+    ]));
+    const loadArticleFromUrl = vi.fn().mockResolvedValue(undefined);
+    const play = vi.fn();
+    const onQueueChange = vi.fn();
+    const controller = new QueueController({
+      articleController: { loadArticleFromUrl } as never,
+      tts: { play, stop: vi.fn() } as never,
+      callbacks: {
+        onQueueChange,
+        onAutoAdvanceCountdown: vi.fn(),
+        onAutoAdvanceCancelled: vi.fn(),
+        onError: vi.fn(),
+      },
+    });
+
+    await controller.playItem('missing');
+
+    expect(loadArticleFromUrl).not.toHaveBeenCalled();
+    expect(play).not.toHaveBeenCalled();
+    expect(controller.getCurrentIndex()).toBe(-1);
+    expect(onQueueChange).not.toHaveBeenCalled();
+  });
+
   it('stops playback and resets the current index when the playing item is removed', () => {
     localStorage.setItem('article-reader-queue', JSON.stringify([
       item('a'), item('b'),

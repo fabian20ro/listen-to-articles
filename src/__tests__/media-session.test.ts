@@ -277,6 +277,23 @@ describe('MediaSessionController', () => {
     expect(actions.seekto).toHaveBeenCalledWith(42);
   });
 
+  it('should start the silent-audio keep-alive when navigator.mediaSession is absent (unsupported browser)', async () => {
+    // Some browsers expose no Media Session API at all. The guard checks
+    // ('mediaSession' in navigator) in updateMetadata/setPlaybackState must
+    // let activate() run the core keep-alive instead of throwing on a missing
+    // object, which would kill the background keep-alive flow.
+    delete (navigator as any).mediaSession;
+    expect('mediaSession' in navigator).toBe(false);
+
+    expect(() => controller.activate('Test Title')).not.toThrow();
+    await Promise.resolve(); // let play() promise settle
+
+    expect(controller.active).toBe(true);
+    expect(playSpy).toHaveBeenCalled();
+    const bodyChildren = Array.from(document.body.children);
+    expect(bodyChildren.some((el) => el instanceof HTMLAudioElement)).toBe(true);
+  });
+
   it('should dispose remove audio from DOM and revoke object URL', () => {
     controller.activate();
     const urlBefore = controller['silentUrl'] as string | null;
