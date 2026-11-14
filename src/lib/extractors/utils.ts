@@ -43,6 +43,8 @@ export function buildArticleFromParagraphs(
 export function isSpeakableText(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length < 2) return false;
+  // No Unicode letter (any script) → pure digits/symbols: nothing worth speaking.
+  if (!/\p{L}/u.test(trimmed)) return false;
   
   // Split by whitespace to get tokens.
   const tokens = trimmed.split(/\s+/);
