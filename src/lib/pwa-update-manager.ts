@@ -103,6 +103,12 @@ export class PwaUpdateManager {
     return 'reloaded';
   }
 
+  cancelPendingReload(): PwaUpdateActionResult {
+    this.pendingReload = false;
+    this.options.onStatus?.('Update dismissed.');
+    return 'no-change';
+  }
+
   hasPendingReload(): boolean {
     return this.pendingReload;
   }

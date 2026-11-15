@@ -444,6 +444,60 @@ describe('PwaUpdateManager', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
+  it('cancelPendingReload clears the pending flag and reports dismissal', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const reloadSpy = vi.fn();
+    const onUpdateApplied = vi.fn();
+    const onStatus = vi.fn();
+
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => true,
+      reload: reloadSpy,
+      onUpdateApplied,
+      onStatus,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+
+    const result = manager.cancelPendingReload();
+
+    expect(result).toBe('no-change');
+    expect(manager.hasPendingReload()).toBe(false);
+    expect(onStatus).toHaveBeenCalledWith('Update dismissed.');
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(onUpdateApplied).not.toHaveBeenCalled();
+  });
+
+  it('applyDeferredReloadIfIdle returns no-change after cancelPendingReload', async () => {
+    const sw = mockServiceWorkerEnvironment();
+    mockCacheStorage();
+    const reloadSpy = vi.fn();
+    const onUpdateApplied = vi.fn();
+    const onStatus = vi.fn();
+
+    let isPlaying = true;
+    const manager = new PwaUpdateManager({
+      isPlaybackActive: () => isPlaying,
+      reload: reloadSpy,
+      onUpdateApplied,
+      onStatus,
+    });
+
+    await manager.init('sw.js');
+    sw.listeners.controllerchange(new Event('controllerchange'));
+
+    manager.cancelPendingReload();
+
+    isPlaying = false;
+    const result = manager.applyDeferredReloadIfIdle();
+
+    expect(result).toBe('no-change');
+    expect(reloadSpy).not.toHaveBeenCalled();
+    expect(onUpdateApplied).not.toHaveBeenCalled();
+  });
+
   it('non-silent checkForUpdates failure invokes onStatus with error message', async () => {
     const sw = mockServiceWorkerEnvironment();
     mockCacheStorage();
