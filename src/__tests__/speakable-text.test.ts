@@ -55,14 +55,24 @@ describe('isSpeakableText', () => {
     expect(isSpeakableText('x'.repeat(10) + ' y'.repeat(10))).toBe(true);
   });
 
-  it('returns true for a string whose only long token is digits', () => {
-    // wordCount=1 (<3), triggers char fallback; stripped "1234567890" ≥ 4 → true.
-    expect(isSpeakableText('1234567890')).toBe(true);
+  it('returns false for a string whose only long token is digits', () => {
+    // No Unicode letter (\p{L}) → filtered by the letter gate before wordCount/charCount logic.
+    expect(isSpeakableText('1234567890')).toBe(false);
   });
 
   it('returns false for a short digit-only string', () => {
-    // wordCount=1 (<3), char fallback: stripped "12" length=2 < 4 → false.
+    // No Unicode letter → letter gate → false.
     expect(isSpeakableText('12')).toBe(false);
+  });
+
+  it('returns false for spaced numeric values', () => {
+    // Digits and spaces only: no Unicode letter, so the letter gate filters it.
+    expect(isSpeakableText('42 56 78')).toBe(false);
+  });
+
+  it('returns false for a comma-separated number', () => {
+    // Digits and commas only: no Unicode letter, so the letter gate filters it.
+    expect(isSpeakableText('1,234,567')).toBe(false);
   });
 
   it('handles whitespace-heavy strings correctly', () => {
