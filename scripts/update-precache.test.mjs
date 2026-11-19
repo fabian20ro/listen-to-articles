@@ -102,6 +102,16 @@ describe('update-precache', () => {
     expect(runInNewContext(`${rendered}\nPRECACHE`)).toEqual(entries);
   });
 
+  it('renders an empty entry list as a valid, empty PRECACHE array', () => {
+    const template = `const PRECACHE = [\n  './stale.js',\n];\n`;
+
+    const rendered = renderServiceWorker(template, []);
+
+    // The block is replaced wholesale, so no stale entry survives and the
+    // rendered output must still parse as JS.
+    expect(runInNewContext(`${rendered}\nPRECACHE`)).toEqual([]);
+  });
+
   it('throws when template lacks PRECACHE pattern', () => {
     const template = `// no precache here\nconst FOO = 'bar';\n`;
 
