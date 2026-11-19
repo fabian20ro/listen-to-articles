@@ -411,6 +411,18 @@ describe('parsePdfFromArrayBuffer - happy path integration', () => {
     expect(result.title).toBe('document-name'); // filename without extension used as title
   });
 
+  it('should derive the title from the basename when the filename contains a path separator (regression: slash branch untested)', async () => {
+    setupMockPdf(1, {}, () => [
+      { str: 'Some content here for the article.', transform: [1, 0, 0, 1, 0, 700], height: 12 }
+    ]);
+
+    const buffer = new ArrayBuffer(1024);
+    const result = await parsePdfFromArrayBuffer(buffer, 'folder/article-name.pdf');
+
+    expect(result.title).toBe('article-name'); // basename with extension stripped, not full path
+    expect(result.siteName).toBe('PDF'); // no author metadata -> default
+  });
+
   it('should call onProgress with expected messages during multi-page parsing', async () => {
     setupMockPdf(2, {}, (pageNum: number) => [
       { str: `Page ${pageNum} full paragraph of content for verification.`, transform: [1, 0, 0, 1, 0, 700], height: 12 }
