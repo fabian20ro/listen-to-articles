@@ -159,6 +159,7 @@ export class AudioTTSBackend implements TTSBackend {
 
     Promise.resolve(this.audio.play()).catch(() => {
       URL.revokeObjectURL(url);
+      if (!this.audio || !this.audio.src) return; // canceled/disposed — no fallback speech
       callbacks.onError(true); // fallback to speech
     });
   }

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TTSEngine, selectVoice, splitSentences, computeTimeline, type TTSCallbacks } from '../lib/tts-engine.js';
+import { AudioTTSBackend } from '../lib/tts-backend-audio.js';
+import type { TTSBackendCallbacks } from '../lib/tts-backend.js';
 import type { Language } from '../lib/language-config.js';
 
 // ── SpeechSynthesis mock ────────────────────────────────────────────
@@ -1448,5 +1450,82 @@ describe('computeTimeline', () => {
     const result = computeTimeline(paragraphs, 0, 0, 0);
     expect(result.duration).toBe(Infinity);
     expect(result.position).toBe(0);
+  });
+});
+
+// ── AudioTTSBackend — play() rejection vs. cancel() race ────────────────────
+
+type MockAudioElement = {
+  src: string;
+  paused: boolean;
+  currentTime: number;
+  playbackRate: number;
+  onended: null | (() => void);
+  onerror: null | (() => void);
+  setAttribute: ReturnType<typeof vi.fn>;
+  removeAttribute: ReturnType<typeof vi.fn>;
+  load: ReturnType<typeof vi.fn>;
+  pause: ReturnType<typeof vi.fn>;
+  remove: ReturnType<typeof vi.fn>;
+  play: ReturnType<typeof vi.fn>;
+};
+
+function createRejectingAudio(): MockAudioElement {
+  const el: MockAudioElement = {
+    src: '',
+    paused: true,
+    currentTime: 0,
+    playbackRate: 1,
+    onended: null,
+    onerror: null,
+    setAttribute: vi.fn(),
+    removeAttribute: vi.fn((name: string) => { if (name === 'src') el.src = ''; }),
+    load: vi.fn(),
+    pause: vi.fn(() => { el.paused = true; }),
+    remove: vi.fn(),
+    play: vi.fn(() => Promise.reject(new Error('NotAllowedError'))),
+  };
+  return el;
+}
+
+function createBackendWithMockAudio(el: MockAudioElement) {
+  return (new AudioTTSBackend({ proxyBase: '' }) as unknown as {
+    audio: MockAudioElement | null;
+    playAudio(url: string, rate: number, callbacks: TTSBackendCallbacks): void;
+    cancel(): void;
+  });
+}
+
+describe('AudioTTSBackend', () => {
+  it('cancel() during play() negotiation does not trigger speech fallback', async () => {
+    const el = createRejectingAudio();
+    const backend = createBackendWithMockAudio(el);
+    backend.audio = el; // seed the mock element (ensureAudio skips existing audio)
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const onError = vi.fn();
+    const callbacks: TTSBackendCallbacks = { onEnd: vi.fn(), onError };
+
+    backend.playAudio('blob:mock-sentence', 1.0, callbacks);
+    backend.cancel(); // user stops while the play() promise is still pending
+    await new Promise((resolve) => setTimeout(resolve, 0)); // flush the .catch microtask
+
+    expect(onError).not.toHaveBeenCalled(); // no phantom speech-synthesis fallback
+    expect(revoke).toHaveBeenCalledTimes(1);
+    expect(el.src).toBe('');
+  });
+
+  it('a genuine play() failure (no cancel) still falls back to speech', async () => {
+    const el = createRejectingAudio();
+    const backend = createBackendWithMockAudio(el);
+    backend.audio = el;
+    const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const onError = vi.fn();
+    const callbacks: TTSBackendCallbacks = { onEnd: vi.fn(), onError };
+
+    backend.playAudio('blob:mock-sentence', 1.0, callbacks);
+    await new Promise((resolve) => setTimeout(resolve, 0)); // src still set — real failure
+
+    expect(onError).toHaveBeenCalledWith(true);
+    expect(revoke).toHaveBeenCalledTimes(1);
   });
 });

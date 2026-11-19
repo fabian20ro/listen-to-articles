@@ -66,6 +66,69 @@ describe('fetchTtsAudio', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it('waits Retry-After seconds on 429 then recovers on retry', async () => {
+    vi.useFakeTimers();
+    const spy = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          headers: { get: (name: string) => (name === 'Retry-After' ? '30' : null) },
+        } as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          blob: async () => new Blob(['audio']),
+        } as any);
+
+      const promise = fetchTtsAudio('hello', 'en', config);
+      // Let the first attempt's 10 s fetch timeout settle, then advance
+      // 30 s so the Retry-After wait elapses on the fake clock.
+      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(30_000);
+      const result = await promise;
+
+      // The rate-limit wait honored the server's 30 s, not the 1 s default.
+      expect(spy).toHaveBeenCalledWith(expect.any(Function), 30_000);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result).toBe('blob:url');
+    } finally {
+      spy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('falls back to the 1 s default delay when 429 has no Retry-After header', async () => {
+    vi.useFakeTimers();
+    const spy = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          headers: { get: () => null },
+        } as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          blob: async () => new Blob(['audio']),
+        } as any);
+
+      const promise = fetchTtsAudio('hello', 'en', config);
+      // Let the first attempt's 10 s fetch timeout settle, then advance
+      // 1 s so the default retry delay elapses on the fake clock.
+      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.advanceTimersByTimeAsync(1_000);
+      const result = await promise;
+
+      expect(spy).toHaveBeenCalledWith(expect.any(Function), 1_000);
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result).toBe('blob:url');
+    } finally {
+      spy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
   it('encodes text and lang params in the fetch URL', async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,

@@ -33,8 +33,10 @@ export async function fetchTtsAudio(
     if (err instanceof Error && err.message.startsWith('Permanent error')) {
       return null;
     }
+    // Honor the server's Retry-After on 429 when it exceeds the default delay.
+    const delayMs = Math.max(RETRY_DELAY_MS, (err as any).retryAfterMs ?? 0);
     // Transient error (network error, timeout, or non-retryable HTTP status)
-    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    await new Promise((r) => setTimeout(r, delayMs));
     // If caller aborted during the retry delay, skip the second attempt.
     if (signal?.aborted) return null;
     try {
@@ -75,7 +77,17 @@ async function attemptFetch(
       if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) {
         throw new Error(`Permanent error: ${resp.status}`);
       }
-      throw new Error(`Transient error: ${resp.status}`);
+      const err = new Error(`Transient error: ${resp.status}`);
+      if (resp.status === 429) {
+        const ra = resp.headers?.get?.('Retry-After');
+        if (ra) {
+          const secs = parseInt(ra, 10);
+          if (!Number.isNaN(secs) && secs > 0) {
+            (err as any).retryAfterMs = secs * 1000;
+          }
+        }
+      }
+      throw err;
     }
 
     const blob = await resp.blob();
