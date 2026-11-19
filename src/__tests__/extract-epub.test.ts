@@ -112,6 +112,49 @@ describe('parseEpubFromArrayBuffer', () => {
     ).rejects.toThrow(/Invalid EPUB: missing container\.xml/);
   });
 
+  it('throws when container.xml names no OPF path, or the named OPF is absent from the archive', async () => {
+    // The OPF discovery stage has two guards after the container stage:
+    // extractOpfPath returning null (no full-path attribute) and readZipFile
+    // returning null (full-path names a file the archive does not contain).
+    // The missing-container test above covers the prior stage; these guards need fixtures.
+    const domParserCtor = class {
+      parseFromString(html: string, _type: string) { return new DOMParser().parseFromString(html, 'application/xml'); }
+    };
+
+    // container.xml whose rootfile omits full-path → extractOpfPath returns null
+    const noOpfPathZip = new JSZip();
+    noOpfPathZip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+    );
+    const noOpfPathBuf = await noOpfPathZip.generateAsync({ type: 'arraybuffer' });
+
+    // container.xml names content.opf, but the archive omits it → readZipFile returns null
+    const missingOpfZip = new JSZip();
+    missingOpfZip.file(
+      'META-INF/container.xml',
+      `<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+    );
+    const missingOpfBuf = await missingOpfZip.generateAsync({ type: 'arraybuffer' });
+
+    await expect(
+      parseEpubFromArrayBuffer(noOpfPathBuf, 'https://example.com/no-opf-path.epub', domParserCtor),
+    ).rejects.toThrow(/Invalid EPUB: cannot find content\.opf path/);
+    await expect(
+      parseEpubFromArrayBuffer(missingOpfBuf, 'https://example.com/missing-opf.epub', domParserCtor),
+    ).rejects.toThrow(/Invalid EPUB: cannot read content\.opf/);
+  });
+
   it('does not escape "Invalid URL" from title-fallback derivation (valid or invalid source URL; junk buffer rejects at zip stage)', async () => {
     // parseEpubFromArrayBuffer derives a title fallback from sourceUrl inside
     // try/catch, so URL parsing can never leak a TypeError. A junk buffer must
