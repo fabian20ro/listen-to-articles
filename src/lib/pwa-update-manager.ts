@@ -6,6 +6,7 @@ export interface PwaUpdateManagerOptions {
   onUpdateReady?: () => void;
   onStatus?: (status: string) => void;
   onUpdateApplied?: () => void;
+  onUpdateDismissed?: () => void;
   isPlaybackActive?: () => boolean;
   reload?: () => void;
 }
@@ -106,6 +107,7 @@ export class PwaUpdateManager {
   cancelPendingReload(): PwaUpdateActionResult {
     this.pendingReload = false;
     this.options.onStatus?.('Update dismissed.');
+    this.options.onUpdateDismissed?.();
     return 'no-change';
   }
 
