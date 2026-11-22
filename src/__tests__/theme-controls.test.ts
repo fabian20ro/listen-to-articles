@@ -101,4 +101,22 @@ describe('shipped theme controls', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '`', code: 'Backquote' }));
     expect(document.documentElement.dataset.theme).toBe('light');
   });
+
+  it('announces the resolved theme to assistive technology on change', () => {
+    expect(document.querySelector('[data-theme-status]')).toBeNull();
+    bind();
+    let status = document.querySelector<HTMLElement>('[data-theme-status]');
+    expect(status).not.toBeNull();
+    expect(status?.getAttribute('role')).toBe('status');
+    expect(status?.getAttribute('aria-live')).toBe('polite');
+    expect(status?.textContent).toBe('dark theme active');
+    button('light').click();
+    status = document.querySelector<HTMLElement>('[data-theme-status]');
+    expect(status?.textContent).toBe('light theme active');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '`', code: 'Backquote' }));
+    status = document.querySelector<HTMLElement>('[data-theme-status]');
+    expect(status?.textContent).toBe('khaki theme active');
+    cleanup?.();
+    expect(document.querySelector('[data-theme-status]')).toBeNull();
+  });
 });
