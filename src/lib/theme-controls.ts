@@ -15,6 +15,17 @@ export function bindThemeControls(
     buttons.forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.value === settings.theme));
     });
+    let status = document.querySelector<HTMLSpanElement>('[data-theme-status]');
+    if (!status) {
+      status = document.createElement('span');
+      status.dataset.themeStatus = '';
+      status.setAttribute('role', 'status');
+      status.setAttribute('aria-live', 'polite');
+      status.style.cssText =
+        'position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;';
+      document.body.append(status);
+    }
+    status.textContent = `${resolved} theme active`;
   };
 
   const followSystem = () => {
@@ -46,5 +57,6 @@ export function bindThemeControls(
     darkScheme.removeEventListener('change', followSystem);
     document.removeEventListener('keydown', onKey);
     handlers.forEach((remove) => remove());
+    document.querySelector('[data-theme-status]')?.remove();
   };
 }
