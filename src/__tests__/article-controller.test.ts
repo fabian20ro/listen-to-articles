@@ -415,6 +415,46 @@ describe('ArticleController', () => {
     expect(refs.articleTitle.textContent).toBe('Stored Article');
   });
 
+  it('notifies onArticleRendered with the paragraph count the TTS engine received', async () => {
+    const article = {
+      title: 'Notified Article',
+      content: '<p>Content</p>',
+      textContent: 'Content',
+      markdown: 'Content',
+      paragraphs: ['Paragraph 1'],
+      lang: 'en',
+      htmlLang: 'en',
+      siteName: 'Site',
+      excerpt: '',
+      wordCount: 1,
+      estimatedMinutes: 1,
+      resolvedUrl: 'https://example.com/notified',
+    } as any;
+
+    const refs = makeRefs();
+    const onArticleRendered = vi.fn();
+    const ttsMock = {
+      stop: vi.fn(),
+      loadArticle: vi.fn(),
+      setLang: vi.fn(),
+    };
+    const controller = new ArticleController({
+      refs,
+      tts: ttsMock as any,
+      proxyBase: 'https://proxy.example.workers.dev',
+      initialLangOverride: 'auto',
+      onArticleRendered,
+    });
+
+    await controller.loadArticleFromStored(article);
+
+    expect(ttsMock.loadArticle).toHaveBeenCalledTimes(1);
+    const loadedParagraphs = ttsMock.loadArticle.mock.calls[0][0] as string[];
+    expect(loadedParagraphs.length).toBeGreaterThan(0);
+    expect(onArticleRendered).toHaveBeenCalledTimes(1);
+    expect(onArticleRendered).toHaveBeenCalledWith(loadedParagraphs.length);
+  });
+
   it('shows error view when offline while loading from stored article', async () => {
     const article = {
       title: 'Offline Stored',
