@@ -203,6 +203,12 @@ async function main(): Promise<void> {
     },
   });
 
+  // Queue exhausted — last article finished, no next item. Show completion.
+  queueController.events.on('queueCompleted', () => {
+    refs.progressFill.style.width = '0%';
+    refs.progressText.textContent = 'Queue complete';
+  });
+
   // ── Queue Drawer ────────────────────────────────────────────
 
   const openQueueDrawer = () => openDrawer(refs.queueDrawer, refs.queueOverlay);

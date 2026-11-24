@@ -39,6 +39,7 @@ export type QueueEvents = {
   autoAdvanceStarted: { nextTitle: string };
   autoAdvanceCountdown: { seconds: number };
   autoAdvanceCancelled: void;
+  queueCompleted: void;
   error: { message: string };
 };
 
@@ -251,7 +252,13 @@ export class QueueController {
    * If there's a next item, starts the auto-advance countdown.
    */
   handleArticleEnd(): void {
-    if (!this.hasNext() || this.currentIndex < 0) return;
+    if (this.currentIndex < 0) return;
+
+    // Queue exhausted — last article finished, no next item to advance to.
+    if (!this.hasNext()) {
+      this.events.emit('queueCompleted');
+      return;
+    }
 
     const next = this.getNextItem();
     if (!next) return;
