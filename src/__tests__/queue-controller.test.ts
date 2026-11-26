@@ -299,4 +299,44 @@ describe('QueueController', () => {
     expect(controller.getCurrentIndex()).toBe(0);
     expect(controller.getCurrentItem()?.id).toBe('b');
   });
+
+  it('emits queueCompleted exactly once when the last queued article finishes', async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem('article-reader-queue', JSON.stringify([
+        item('a'), item('b'),
+      ]));
+      const play = vi.fn();
+      const controller = new QueueController({
+        articleController: { loadArticleFromUrl: vi.fn().mockResolvedValue(undefined) } as never,
+        tts: { play, stop: vi.fn() } as never,
+        callbacks: {
+          onQueueChange: vi.fn(),
+          onAutoAdvanceCountdown: vi.fn(),
+          onAutoAdvanceCancelled: vi.fn(),
+          onError: vi.fn(),
+        },
+      });
+
+      let completed = 0;
+      controller.events.on('queueCompleted', () => {
+        completed += 1;
+      });
+
+      // Last item finishes — queue exhausted → single completion signal.
+      controller.syncCurrentById('b');
+      controller.handleArticleEnd();
+
+      expect(completed).toBe(1);
+      expect(play).not.toHaveBeenCalled();
+
+      // A next item exists → no completion signal.
+      controller.syncCurrentById('a');
+      controller.handleArticleEnd();
+
+      expect(completed).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
