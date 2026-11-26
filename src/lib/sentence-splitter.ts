@@ -25,6 +25,17 @@ export function mergeShortSentences(sentences: string[]): string[] {
   }
   merged.push(current);
 
+  if (merged.length > 1) {
+    const last = merged[merged.length - 1];
+    if (last.length < MIN_SENTENCE_LENGTH) {
+      const prev = merged[merged.length - 2];
+      if (prev.length + 1 + last.length <= MAX_UTTERANCE_LENGTH) {
+        merged[merged.length - 2] = prev + ' ' + last;
+        merged.pop();
+      }
+    }
+  }
+
   return merged;
 }
 

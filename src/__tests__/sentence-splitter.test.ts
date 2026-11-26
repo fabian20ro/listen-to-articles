@@ -19,15 +19,15 @@ describe('sentence-splitter', () => {
     });
 
     it('should not merge sentences if the result exceeds MAX_UTTERANCE_LENGTH', () => {
-      const longPart = 'A'.repeat(150);
-      const input = [longPart + '.', 'Next sentence.'];
+      const longPart = 'A'.repeat(190);
+      const input = [longPart + '.', 'Next sentence.']; // 191 + 1 + 14 = 206 > 200
       expect(mergeShortSentences(input)).toEqual([longPart + '.', 'Next sentence.']);
     });
 
-    it('should NOT merge when current length equals MIN_SENTENCE_LENGTH (40)', () => {
+    it('should backward-merge a trailing short sentence even when the preceding is exactly MIN_SENTENCE_LENGTH (40)', () => {
       const boundary = 'A'.repeat(40);
-      const input = [boundary, 'short.'];
-      expect(mergeShortSentences(input)).toEqual([boundary, 'short.']);
+      const input = [boundary, 'short.']; // 40 + 1 + 6 = 47 <= 200
+      expect(mergeShortSentences(input)).toEqual([`${boundary} short.`]);
     });
 
     it('should merge when current is one char below MIN_SENTENCE_LENGTH (39)', () => {
@@ -57,15 +57,41 @@ describe('sentence-splitter', () => {
     it('should stop merging once the accumulated chunk reaches MIN_SENTENCE_LENGTH (40)', () => {
       // The MIN gate is evaluated on the growing accumulator, not just the first
       // fragment: after the first merge the chunk is 79 chars (>= 40), so the next
-      // short sentence must start a fresh segment even though it is itself < 40 chars.
+      // sentence must start a fresh segment. c is exactly 40 chars so the trailing
+      // backward merge also does not apply, leaving two segments.
       const a = 'A'.repeat(39);
       const b = 'B'.repeat(39);
-      const c = 'C'.repeat(39);
+      const c = 'C'.repeat(40);
       expect(mergeShortSentences([a, b, c])).toEqual([`${a} ${b}`, c]);
     });
 
     it('should handle empty input array', () => {
       expect(mergeShortSentences([])).toEqual([]);
+    });
+
+    it('should backward-merge a trailing short sentence with the preceding sentence', () => {
+      const long = 'A sentence that is well over forty characters in length here.';
+      expect(mergeShortSentences([long, 'Ok.']).length).toBe(1);
+      expect(mergeShortSentences([long, 'Ok.'])[0]).toBe(`${long} Ok.`);
+    });
+
+    it('should backward-merge only the trailing short sentence in a 3-element input', () => {
+      const long1 = 'First sentence that is well over forty characters long.';
+      const long2 = 'Second sentence that is also well over forty characters.';
+      const shortTail = 'Yes.';
+      expect(mergeShortSentences([long1, long2, shortTail])).toEqual([long1, `${long2} ${shortTail}`]);
+    });
+
+    it('should keep two elements when the backward merge would exceed MAX_UTTERANCE_LENGTH', () => {
+      const long = 'A'.repeat(190);
+      const shortTail = 'B'.repeat(10); // 190 + 1 + 10 = 201 > 200 → no merge
+      expect(mergeShortSentences([long, shortTail])).toEqual([long, shortTail]);
+    });
+
+    it('should leave inputs unchanged when the last sentence is >= MIN_SENTENCE_LENGTH', () => {
+      const a = 'A'.repeat(45);
+      const b = 'B'.repeat(45);
+      expect(mergeShortSentences([a, b])).toEqual([a, b]);
     });
   });
 
